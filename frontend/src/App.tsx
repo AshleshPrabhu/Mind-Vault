@@ -9,6 +9,8 @@ import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
 import Profile from './pages/Profile';
+import AIChat from './pages/AIChat';
+import About from './pages/About';
 import './index.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider } from 'wagmi'
@@ -68,7 +70,7 @@ function App() {
                   <Route path="chats" element={<Chat />} />
                   <Route path="chat" element={<Chat />} />
                   <Route path="private" element={<ComingSoonPage title="Private Sessions" />} />
-                  <Route path="ai-chat" element={<ComingSoonPage title="AI Support Chat" />} />
+                  <Route path="ai-chat" element={<AIChat />} />
                   
                   {/* Default redirect to dashboard when accessing /app */}
                   <Route index element={<Navigate to="dashboard" replace />} />

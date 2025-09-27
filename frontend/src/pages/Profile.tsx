@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { Wallet, History, Heart, TrendingUp, ArrowUpRight, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Wallet, History, Heart, TrendingUp, ArrowUpRight, X, MessageCircle, ArrowLeft } from 'lucide-react';
 
 const Profile: React.FC = () => {
+  const navigate = useNavigate();
   const [ashBalance] = useState(2847.63); // User's current ASH token balance
   const [selectedNGO, setSelectedNGO] = useState<any>(null);
   const [donationAmount, setDonationAmount] = useState('');
@@ -103,16 +105,30 @@ const Profile: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Page Header */}
+        {/* Page Header with Navigation */}
         <div className="mb-8">
-          <div className="flex items-center space-x-4 mb-2">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full flex items-center justify-center shadow-lg">
-              <span className="text-white text-xl font-bold">MV</span>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-              <p className="text-gray-600">Manage your MindVault account and contributions</p>
-            </div>
+          {/* Chats button positioned above the title */}
+          <div className="mb-4">
+            <button
+              onClick={() => navigate('/app/chats')}
+              className="
+                group flex items-center space-x-2 px-3 py-2 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-200
+                transition-all duration-200 text-gray-700 hover:text-primary-700
+              "
+              aria-label="Go to chats"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" />
+              <MessageCircle className="w-4 h-4" />
+              <span className="text-sm font-medium hidden sm:inline">Chats</span>
+            </button>
+          </div>
+          
+          {/* Title and description */}
+          <div>
+            <h1 className="text-3xl font-bold text-gradient-primary mb-2">
+              👤 My Profile
+            </h1>
+            <p className="text-gray-600">Manage your MindVault account and contributions</p>
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { History, CheckCircle } from 'lucide-react';
+import { History, CheckCircle, Bot, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import ChatHistory from '../ChatHistory';
 import type { ChatMessage, ChatRoom } from '../../pages/Chat';
 import { useWallet } from '../../contexts/WalletContext';
@@ -24,6 +25,7 @@ const ChatMain: React.FC<ChatMainProps> = ({
   onUnvalidateMessage
 }) => {
   const { user } = useWallet();
+    const navigate = useNavigate();
   const [newMessage, setNewMessage] = useState('');
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -553,6 +555,39 @@ const ChatMain: React.FC<ChatMainProps> = ({
         isOpen={showChatHistory}
         onClose={() => setShowChatHistory(false)}
       />
+
+      {/* AI Assistant Bubble - Fixed Position */}
+      <div className="fixed top-3 right-18 z-50">
+        <button
+          onClick={() => navigate('/app/ai-chat')}
+          className="
+            group relative bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600
+            text-white p-4 rounded-full shadow-lg hover:shadow-xl
+            transform transition-all duration-300 hover:scale-110 active:scale-95
+            ring-4 ring-primary-100 hover:ring-primary-200
+            hover:animate-none
+          "
+          title="Chat with AI Assistant"
+        >
+          
+          <div className="relative flex items-center justify-center">
+            <Bot className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+            <Sparkles className="w-2 h-2 absolute -top-1 -right-1 opacity-75 group-hover:opacity-100 transition-opacity duration-300" />
+          </div>
+          
+          {/* Tooltip */}
+          <div className="
+            absolute bottom-full right-0 mb-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg
+            opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-2 group-hover:translate-y-0
+            whitespace-nowrap pointer-events-none
+          ">
+            <div className="relative">
+              AI Companion
+              <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+            </div>
+          </div>
+        </button>
+      </div>
     </div>
   );
 };

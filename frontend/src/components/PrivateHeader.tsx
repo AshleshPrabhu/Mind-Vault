@@ -2,33 +2,21 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
 // import { useChatContext } from '../contexts/ChatContext';
+import logo from '../assets/logo_only.png';
+import logoText from '../assets/logo_text.png';
 
 const PrivateHeader: React.FC = () => {
   const { address, disconnectWallet } = useWallet();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const navigate = useNavigate();
-  // const location = useLocation();
   // const { currentChatType } = useChatContext();
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  // Check if we should show history tab (only for public chats)
-  // const isOnChatPage = location.pathname.includes('/chat') || location.pathname.includes('/chats');
-  // const shouldShowHistory = false; // Removed - history is now in ChatMain header
-
-  const baseNavItems = [
-    { name: 'Chats', href: '/app/chats', icon: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-      </svg>
-    )},
-  ];
-
-  // Use baseNavItems directly (no dynamic history tab)
-  const navItems = baseNavItems;
+  // No navigation items in header - moved to individual pages
 
   return (
     <header className="bg-white border-b border-gray-200 shadow-sm">
@@ -36,55 +24,15 @@ const PrivateHeader: React.FC = () => {
         <div className="flex items-center justify-between h-16">
           
           {/* Logo Section */}
-          <div 
-            className="flex items-center space-x-3 group cursor-pointer"
-            onClick={() => navigate('/app/chats')}
-          >
-            <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
-              <div className="w-6 h-6 relative">
-                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-white">
-                  <path 
-                    d="M12 2C8.5 2 6 4.5 6 7.5c0 1.5.5 3 1.5 4C6.5 12.5 6 14 6 15.5c0 3 2.5 5.5 6 5.5s6-2.5 6-5.5c0-1.5-.5-3-1.5-4 1-1 1.5-2.5 1.5-4C18 4.5 15.5 2 12 2z" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    fill="rgba(25, 112, 103, 0.1)"
-                  />
-                  <circle cx="9" cy="9" r="1.5" fill="currentColor" />
-                  <circle cx="15" cy="9" r="1.5" fill="currentColor" />
-                  <path d="M9 15c1 1 3 1 6 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </div>
-            </div>
-            
-            <div className="flex flex-col">
-              <div className="text-lg font-bold">
-                <span className="text-primary-600">Mind</span>
-                <span className="text-gray-800">Vault</span>
-              </div>
-              <span className="text-xs text-gray-500 -mt-1 hidden sm:block">
-                Mental Health Support
-              </span>
-            </div>
+          <div className='flex items-center space-x-2'>
+            <img src={logo} alt="MindVault Logo" className="h-10 lg:h-12" />
+            <img src={logoText} alt="MindVault Text Logo" className="h-6 lg:h-20 hidden sm:block" />
           </div>
 
-          {/* Desktop Navigation */}
+
+          {/* Navigation moved to individual pages */}
           <div className="hidden lg:flex items-center space-x-1">
-            {navItems.filter(item => item && item.href).map((item, index) => (
-              <button
-                key={index}
-                onClick={() => navigate(item.href)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  location.pathname === item.href 
-                    ? 'bg-primary-50 text-primary-600 border border-primary-200' 
-                    : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
-                }`}
-              >
-                <span className="text-current">
-                  {item.icon}
-                </span>
-                <span>{item.name}</span>
-              </button>
-            ))}
+            {/* Navigation items removed - now handled by individual pages */}
           </div>
 
           {/* Right Side - Notifications & Profile */}
@@ -194,24 +142,12 @@ const PrivateHeader: React.FC = () => {
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - Navigation moved to individual pages */}
       <div className={`lg:hidden transition-all duration-300 overflow-hidden ${
         isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
       }`}>
         <div className="bg-gray-50 border-t border-gray-200 px-4 py-4 space-y-2">
-          {navItems.filter(item => item && item.href).map((item, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                navigate(item.href);
-                setIsMobileMenuOpen(false);
-              }}
-              className="w-full flex items-center space-x-3 px-4 py-3 bg-white rounded-lg text-gray-700 hover:text-primary-600 hover:bg-primary-50 transition-all duration-200 border border-gray-100"
-            >
-              {item.icon}
-              <span>{item.name}</span>
-            </button>
-          ))}
+          {/* Navigation items removed - now handled by individual pages */}
         </div>
       </div>
     </header>
