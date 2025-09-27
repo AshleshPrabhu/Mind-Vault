@@ -1,44 +1,24 @@
-import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import PublicLayout from './components/PublicLayout';
 import PrivateLayout from './components/PrivateLayout';
+import ProtectedRoute from './components/ProtectedRoute';
 import { ChatProvider } from './contexts/ChatContext';
+import { WalletProvider } from './contexts/WalletContext';
+import { SocketProvider } from './contexts/SocketContext';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
 import Profile from './pages/Profile';
 import './index.css';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { WagmiProvider } from 'wagmi'
+import { config } from './config'
+import { Toaster } from 'sonner'
+
+const queryClient = new QueryClient()
 
 function App() {
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string>('');
 
-  const handleConnectWallet = async () => {
-    // Mock wallet connection - replace with actual Web3 integration
-    try {
-      // Simulate wallet connection
-      setIsWalletConnected(true);
-      setWalletAddress('0x1234567890abcdef1234567890abcdef12345678');
-      
-      // In real implementation, you would:
-      // 1. Check if MetaMask is installed
-      // 2. Request account access
-      // 3. Get the user's wallet address
-      // 4. Possibly redirect to dashboard
-      
-      console.log('Wallet connected successfully!');
-    } catch (error) {
-      console.error('Failed to connect wallet:', error);
-    }
-  };
-
-  const handleDisconnectWallet = () => {
-    setIsWalletConnected(false);
-    setWalletAddress('');
-    console.log('Wallet disconnected');
-  };
-
-  // Placeholder components for future routes
   const ComingSoonPage = ({ title }: { title: string }) => (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="glass-card-hero text-center max-w-2xl">
@@ -58,58 +38,65 @@ function App() {
   );
 
   return (
-    <ChatProvider>
-      <Router>
-        <div className="App">
-          <Routes>
-          {/* Public Routes */}
-          <Route 
-            path="/" 
-            element={
-              <PublicLayout 
-                onConnectWallet={handleConnectWallet}
-                isWalletConnected={isWalletConnected}
-                walletAddress={walletAddress}
-              />
-            }
-          >
-            <Route index element={<Home />} />
-          </Route>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}> 
+        <WalletProvider>
+          <SocketProvider>
+            <ChatProvider>
+              <Router>
+              <div className="App">
+                <Routes>
+                {/* Public Routes */}
+                <Route 
+                  path="/" 
+                  element={<PublicLayout />}
+                >
+                  <Route index element={<Home />} />
+                </Route>
 
-          {/* Private Routes - Temporarily accessible without wallet connection */}
-          <Route 
-            path="/app" 
-            element={
-              <PrivateLayout 
-                walletAddress={walletAddress}
-                onDisconnectWallet={handleDisconnectWallet}
-              />
-            }
-          >
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="chats" element={<Chat />} />
-            <Route path="chat" element={<Chat />} />
-            <Route path="private" element={<ComingSoonPage title="Private Sessions" />} />
-            <Route path="ai-chat" element={<ComingSoonPage title="AI Support Chat" />} />
-            
-            {/* Default redirect to dashboard when accessing /app */}
-            <Route index element={<Navigate to="dashboard" replace />} />
-          </Route>
+                {/* Protected Private Routes */}
+                <Route 
+                  path="/app" 
+                  element={
+                    <ProtectedRoute>
+                      <PrivateLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="dashboard" element={<Dashboard />} />
+                  <Route path="profile" element={<Profile />} />
+                  <Route path="chats" element={<Chat />} />
+                  <Route path="chat" element={<Chat />} />
+                  <Route path="private" element={<ComingSoonPage title="Private Sessions" />} />
+                  <Route path="ai-chat" element={<ComingSoonPage title="AI Support Chat" />} />
+                  
+                  {/* Default redirect to dashboard when accessing /app */}
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                </Route>
 
-          {/* Redirect legacy routes */}
-          <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
-          <Route path="/chats" element={<Navigate to="/app/chats" replace />} />
-          <Route path="/chat" element={<Navigate to="/app/chat" replace />} />
-          <Route path="/private" element={<Navigate to="/app/private" replace />} />
-          <Route path="/ai-chat" element={<Navigate to="/app/ai-chat" replace />} />
+              {/* Redirect legacy routes */}
+              <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="/chats" element={<Navigate to="/app/chats" replace />} />
+              <Route path="/chat" element={<Navigate to="/app/chat" replace />} />
+              <Route path="/private" element={<Navigate to="/app/private" replace />} />
+              <Route path="/ai-chat" element={<Navigate to="/app/ai-chat" replace />} />
 
-          {/* Catch all - redirect to home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
-    </Router>
-    </ChatProvider>
+              {/* Catch all - redirect to home */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+              </Router>
+            </ChatProvider>
+          </SocketProvider>
+        </WalletProvider>
+      </QueryClientProvider>
+      <Toaster 
+        position="top-right"
+        expand={true}
+        richColors={true}
+        closeButton={true}
+      />
+    </WagmiProvider>
   );
 }
 

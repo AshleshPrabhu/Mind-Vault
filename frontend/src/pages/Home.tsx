@@ -5,8 +5,6 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
 
   const handleConnectWallet = async () => {
-    // This will trigger the wallet connection in the parent App component
-    // For now, we'll just navigate (in real implementation, this would be handled by a context or prop)
     navigate('/app/dashboard');
   };
 

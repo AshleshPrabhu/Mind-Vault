@@ -3,8 +3,8 @@ import { format, isToday, isYesterday, startOfDay, differenceInDays } from 'date
 import { Search, Clock, MessageCircle, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface ChatMessage {
-  id: string;
-  senderId: string;
+  id: number;
+  senderId: number;
   senderName: string;
   content: string;
   timestamp: Date;
@@ -101,9 +101,9 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
     setExpandedDays(newExpanded);
   };
 
-  const handleMessageClick = (messageId: string) => {
+  const handleMessageClick = (messageId: number) => {
     if (onMessageClick) {
-      onMessageClick(messageId);
+      onMessageClick(messageId.toString());
       onClose();
     }
   };

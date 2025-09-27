@@ -1,16 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useWallet } from '../contexts/WalletContext';
 // import { useChatContext } from '../contexts/ChatContext';
 
-interface PrivateHeaderProps {
-  walletAddress?: string;
-  onDisconnectWallet?: () => void;
-}
-
-const PrivateHeader: React.FC<PrivateHeaderProps> = ({ 
-  walletAddress, 
-  onDisconnectWallet
-}) => {
+const PrivateHeader: React.FC = () => {
+  const { address, disconnectWallet } = useWallet();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -106,13 +100,13 @@ const PrivateHeader: React.FC<PrivateHeaderProps> = ({
               >
                 <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
                   <span className="text-white text-sm font-medium">
-                    {walletAddress ? walletAddress.slice(2, 4).toUpperCase() : 'MV'}
+                    {address ? address.slice(2, 4).toUpperCase() : 'MV'}
                   </span>
                 </div>
                 <div className="hidden sm:block text-left">
                   <div className="text-sm text-gray-900 font-medium">User</div>
                   <div className="text-xs text-gray-500 font-mono">
-                    {walletAddress ? formatAddress(walletAddress) : '0x1234...5678'}
+                    {address ? formatAddress(address) : '0x1234...5678'}
                   </div>
                 </div>
                 <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isAccountMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -137,13 +131,13 @@ const PrivateHeader: React.FC<PrivateHeaderProps> = ({
                         <div className="flex items-center space-x-3">
                           <div className="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center">
                             <span className="text-white font-medium">
-                              {walletAddress ? walletAddress.slice(2, 4).toUpperCase() : 'MV'}
+                              {address ? address.slice(2, 4).toUpperCase() : 'MV'}
                             </span>
                           </div>
                           <div>
                             <div className="text-gray-900 font-medium">Anonymous User</div>
                             <div className="text-xs text-gray-500 font-mono">
-                              {walletAddress ? formatAddress(walletAddress) : '0x1234...5678'}
+                              {address ? formatAddress(address) : '0x1234...5678'}
                             </div>
                             <div className="text-xs text-green-600 mt-1">● Connected</div>
                           </div>
@@ -168,7 +162,7 @@ const PrivateHeader: React.FC<PrivateHeaderProps> = ({
                         <button 
                           className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors text-left"
                           onClick={() => {
-                            onDisconnectWallet?.();
+                            disconnectWallet();
                             navigate('/');
                             setIsAccountMenuOpen(false);
                           }}

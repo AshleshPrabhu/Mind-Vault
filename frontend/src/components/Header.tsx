@@ -1,18 +1,28 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useWallet } from '../contexts/WalletContext';
+import WalletModal from './WalletModal';
 
-interface HeaderProps {
-  onConnectWallet?: () => void;
-  isWalletConnected?: boolean;
-  walletAddress?: string;
-}
+interface HeaderProps {}
 
-const Header: React.FC<HeaderProps> = ({ 
-  onConnectWallet, 
-  isWalletConnected = false, 
-  walletAddress 
-}) => {
+const Header: React.FC<HeaderProps> = () => {
+  const { 
+    isConnected, 
+    address, 
+    user,
+    openWalletModal, 
+    closeWalletModal, 
+    isWalletModalOpen, 
+    disconnectWallet 
+  } = useWallet();
+  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleDisconnect = () => {
+    disconnectWallet();
+    navigate('/');
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -91,9 +101,9 @@ const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center space-x-4">
             
             {/* Wallet Connection Button */}
-            {!isWalletConnected ? (
+            {!isConnected ? (
               <button
-                onClick={onConnectWallet}
+                onClick={openWalletModal}
                 className="btn btn-primary text-sm lg:text-base"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -103,11 +113,31 @@ const Header: React.FC<HeaderProps> = ({
               </button>
             ) : (
               <div className="flex items-center space-x-2">
-                <div className="card px-3 py-2 flex items-center space-x-2 bg-primary-50">
+                <div className="card px-3 py-2 flex items-center space-x-2 bg-primary-50 relative group">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-mono text-primary-700">
-                    {walletAddress && formatAddress(walletAddress)}
+                  <span className="text-sm text-primary-700">
+                    {user?.username || (address && formatAddress(address))}
                   </span>
+                  
+                  {/* Dropdown Menu */}
+                  <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="p-3 border-b border-gray-100">
+                      {user && (
+                        <div className="mb-2">
+                          <div className="text-xs text-gray-500 mb-1">Username</div>
+                          <div className="text-sm font-semibold text-gray-900">{user.username}</div>
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500 mb-1">Connected Wallet</div>
+                      <div className="text-sm font-mono text-gray-900">{address && formatAddress(address)}</div>
+                    </div>
+                    <button
+                      onClick={handleDisconnect}
+                      className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      Disconnect Wallet
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -144,20 +174,52 @@ const Header: React.FC<HeaderProps> = ({
           ))}
           
           {/* Mobile Wallet Info */}
-          {isWalletConnected && (
+          {!isConnected ? (
+            <button
+              onClick={openWalletModal}
+              className="w-full btn btn-primary text-sm mt-4"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Connect Wallet
+            </button>
+          ) : (
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="card p-3 bg-primary-50">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-xs text-primary-700">
-                    Connected: {walletAddress && formatAddress(walletAddress)}
-                  </span>
+              <div className="card p-3 bg-primary-50 mb-3">
+                <div className="space-y-2">
+                  {user && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-xs text-primary-700 font-semibold">
+                        {user.username}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-2">
+                    <div className="w-1 h-1 bg-gray-400 rounded-full ml-0.5"></div>
+                    <span className="text-xs text-gray-500 font-mono">
+                      {address && formatAddress(address)}
+                    </span>
+                  </div>
                 </div>
               </div>
+              <button
+                onClick={handleDisconnect}
+                className="w-full text-left p-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                Disconnect Wallet
+              </button>
             </div>
           )}
         </div>
       </div>
+      
+      {/* Wallet Modal */}
+      <WalletModal 
+        isOpen={isWalletModalOpen} 
+        onClose={closeWalletModal} 
+      />
     </header>
   );
 };

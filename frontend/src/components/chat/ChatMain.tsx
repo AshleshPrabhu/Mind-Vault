@@ -2,22 +2,39 @@ import React, { useState, useRef, useEffect } from 'react';
 import { History, CheckCircle } from 'lucide-react';
 import ChatHistory from '../ChatHistory';
 import type { ChatMessage, ChatRoom } from '../../pages/Chat';
+import { useWallet } from '../../contexts/WalletContext';
 
 interface ChatMainProps {
   activeChat: ChatRoom;
   messages: ChatMessage[];
   onMenuClick: () => void;
-  onSendMessage: (chatId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+  onSendMessage: (chatId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>, encrypted?: boolean) => void;
   onStartPrivateChat?: (senderName: string, senderId: string) => void;
+  onValidateMessage?: (messageId: number) => void;
+  onUnvalidateMessage?: (messageId: number) => void;
 }
 
-const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, onSendMessage, onStartPrivateChat }) => {
+const ChatMain: React.FC<ChatMainProps> = ({
+  activeChat,
+  messages,
+  onMenuClick,
+  onSendMessage,
+  onStartPrivateChat,
+  onValidateMessage,
+  onUnvalidateMessage
+}) => {
+  const { user } = useWallet();
   const [newMessage, setNewMessage] = useState('');
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [activeMessageMenu, setActiveMessageMenu] = useState<string | null>(null);
+  const [activeMessageMenu, setActiveMessageMenu] = useState<number | null>(null);
   const [showChatHistory, setShowChatHistory] = useState(false);
-  const [validatedMessages, setValidatedMessages] = useState<Set<string>>(new Set());
+  const [encryptMessage, setEncryptMessage] = useState(false);
+  const validatedMessages = new Set(
+    messages
+      .filter(msg => msg.isValidated)
+      .map(msg => msg.id)
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -29,7 +46,6 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
     scrollToBottom();
   }, [messages]);
 
-  // Close message menu when clicking outside
   useEffect(() => {
     const handleClickOutside = () => {
       if (activeMessageMenu) {
@@ -42,40 +58,39 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
   }, [activeMessageMenu]);
 
   const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !user) return;
 
-    // Create the message object to send
     const messageToSend = {
-      senderId: 'me',
-      senderName: 'You',
+      senderId: user.id,
+      senderName: user.username,
       content: newMessage.trim(),
+      createdAt: new Date().toISOString(),
       isMe: true,
+      sender: {
+        id: user.id,
+        username: user.username,
+        profilePicture: user.profilePicture || ''
+      },
       ...(replyTo && {
         replyTo: {
-          id: replyTo.id,
+          id: replyTo.id.toString(),
           senderName: replyTo.senderName,
           content: replyTo.content
         }
       })
     };
 
-    // Call the parent function to add the message to state
-    onSendMessage(activeChat.id, messageToSend);
+    onSendMessage(activeChat.roomId.toString(), messageToSend, encryptMessage);
 
-    // Reset form state
     setNewMessage('');
     setReplyTo(null);
     setShowEmojiPicker(false);
-    
-    // Focus back to textarea for continuous typing
     textareaRef.current?.focus();
   };
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const textarea = e.target;
     setNewMessage(textarea.value);
-    
-    // Auto-resize textarea
     textarea.style.height = 'auto';
     textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
   };
@@ -89,36 +104,34 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
 
   const handleStartPrivateChat = (message: ChatMessage) => {
     if (onStartPrivateChat) {
-      onStartPrivateChat(message.senderName, message.senderId);
+      onStartPrivateChat(message.senderName, message.senderId.toString());
     }
     setActiveMessageMenu(null);
   };
 
-  const handleValidateMessage = (messageId: string) => {
-    setValidatedMessages(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(messageId)) {
-        newSet.delete(messageId); // Remove validation if already validated
-        console.log(`Removed validation for message ID: ${messageId}`);
-      } else {
-        newSet.add(messageId); // Add validation
-        console.log(`Added validation for message ID: ${messageId}`);
+  const handleValidateMessage = (messageId: number) => {
+    const isCurrentlyValidated = validatedMessages.has(messageId);
+    
+    if (isCurrentlyValidated) {
+      if (onUnvalidateMessage) {
+        onUnvalidateMessage(messageId);
       }
-      return newSet;
-    });
+    } else {
+      if (onValidateMessage) {
+        onValidateMessage(messageId);
+      }
+    }
+    
     setActiveMessageMenu(null);
   };
 
   const handleMessageNavigation = (messageId: string) => {
-    // Find the message element and scroll to it
     const messageElement = document.getElementById(`message-${messageId}`);
     if (messageElement) {
       messageElement.scrollIntoView({ 
         behavior: 'smooth', 
         block: 'center' 
       });
-      
-      // Highlight the message temporarily
       messageElement.classList.add('bg-yellow-100', 'border-2', 'border-yellow-300');
       setTimeout(() => {
         messageElement.classList.remove('bg-yellow-100', 'border-2', 'border-yellow-300');
@@ -135,7 +148,6 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
   };
 
   const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
-    // Generate a consistent profile color based on sender name
     const getProfileColor = (name: string) => {
       const colors = [
         'bg-gradient-to-br from-blue-500 to-blue-600',
@@ -156,183 +168,199 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
     };
 
     return (
-    <div 
-      id={`message-${message.id}`}
-      className={`flex ${message.isMe ? 'justify-end' : 'justify-start'} mb-4 transition-colors duration-300 rounded-lg p-1 group`}
-    >
-      {/* Profile Picture - Only for non-user messages in public chats */}
-      {!message.isMe && activeChat.type === 'public' && (
-        <div className="flex-shrink-0 mr-2 sm:mr-3 mt-1">
-          <div className={`
-            w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-semibold text-xs sm:text-sm shadow-lg
-            ring-2 ring-white ring-offset-1 transition-transform duration-200 hover:scale-105
-            ${getProfileColor(message.senderName)}
-          `}>
-            {getInitials(message.senderName)}
-          </div>
-        </div>
-      )}
-
-      <div className={`max-w-[75%] sm:max-w-[70%] ${message.isMe ? 'order-2' : 'order-1'} ${!message.isMe && activeChat.type === 'public' ? 'max-w-[calc(75%-2.5rem)] sm:max-w-[calc(70%-3.5rem)]' : ''}`}>
-        {/* Reply Context */}
-        {message.replyTo && (
-          <div className={`
-            mb-1 p-2 border-l-4 bg-gray-100 rounded text-xs
-            ${message.isMe ? 'border-primary-600' : 'border-gray-400'}
-          `}>
-            <div className="font-semibold text-gray-700">{message.replyTo.senderName}</div>
-            <div className="text-gray-600 truncate">{message.replyTo.content}</div>
+      <div 
+        id={`message-${message.id}`}
+        className={`relative flex ${message.isMe ? 'justify-end' : 'justify-start'} mb-4 transition-colors duration-300 rounded-lg p-1 hover:bg-gray-50/30 ${!message.isMe ? 'pr-16' : ''} group`}
+      >
+        {!message.isMe && activeChat.type === 'GLOBAL' && (
+          <div className="flex-shrink-0 mr-2 sm:mr-3 mt-1">
+            <div className={`
+              w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white font-semibold text-xs sm:text-sm shadow-lg
+              ring-2 ring-white ring-offset-1 transition-transform duration-200 hover:scale-105
+              ${getProfileColor(message.senderName)}
+            `}>
+              {getInitials(message.senderName)}
+            </div>
           </div>
         )}
-        
-        {/* Message Bubble */}
-        <div
-          className={`
-            relative px-4 py-3 rounded-2xl shadow-sm group cursor-pointer transition-all duration-200
-            ${message.isMe 
-              ? 'bg-primary-600 text-white rounded-br-md hover:shadow-md' 
-              : 'bg-white border border-gray-200 text-gray-900 rounded-bl-md hover:shadow-md hover:border-gray-300'
-            }
-          `}
-          onClick={() => !message.isMe && setReplyTo(message)}
-        >
-          {/* Sender name for group/public chats */}
-          {!message.isMe && activeChat.type === 'public' && (
-            <div className="flex items-center space-x-2 mb-2">
-              <div className="text-xs font-semibold text-primary-600">
-                {message.senderName}
-              </div>
-              <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-              <div className="text-xs text-gray-500">
-                {formatMessageTime(message.timestamp)}
-              </div>
-            </div>
-          )}
-          
-          {/* Message content */}
-          <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-            {message.content}
-          </div>
-          
-          {/* Validation Indicator - Only for the main message, not replies */}
-          {!message.isMe && validatedMessages.has(message.id) && (
-            <div 
-              className="flex items-center space-x-1 mt-2 pt-2 border-t border-green-100 text-green-600 bg-green-50/30 rounded px-2 py-1"
-              onClick={(e) => e.stopPropagation()} // Prevent triggering reply when clicking validation indicator
-            >
-              <CheckCircle className="w-4 h-4" />
-              <span className="text-xs font-medium">Validated</span>
-            </div>
-          )}
-          
-          {/* Message time - Only show for user messages or private chats */}
-          {(message.isMe || activeChat.type === 'private') && (
+
+        <div className={`max-w-[75%] sm:max-w-[70%] ${message.isMe ? 'order-2' : 'order-1'} ${!message.isMe && activeChat.type === 'GLOBAL' ? 'max-w-[calc(75%-2.5rem)] sm:max-w-[calc(70%-3.5rem)]' : ''}`}>
+          {message.replyTo && (
             <div className={`
-              text-xs mt-1 flex items-center justify-end space-x-1
-              ${message.isMe ? 'text-primary-100' : 'text-gray-500'}
+              mb-1 p-2 border-l-4 bg-gray-100 rounded text-xs
+              ${message.isMe ? 'border-primary-600' : 'border-gray-400'}
             `}>
-              <span>{formatMessageTime(message.timestamp)}</span>
-              {message.isMe && (
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              )}
+              <div className="font-semibold text-gray-700">{message.replyTo.senderName}</div>
+              <div className="text-gray-600 truncate">{message.replyTo.content}</div>
             </div>
           )}
-
-          {/* Message Actions - Reply and Menu */}
-          {!message.isMe && (
-            <div className={`absolute -right-12 sm:-right-16 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col space-y-1 z-10`}>
-              {/* Reply Button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setReplyTo(message);
-                  textareaRef.current?.focus();
-                  setActiveMessageMenu(null);
-                }}
-                className="bg-white/90 backdrop-blur-sm hover:bg-gray-100 rounded-full p-1.5 sm:p-2 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 border border-gray-200"
-                title="Reply"
+          
+          <div
+            className={`
+              relative px-4 py-3 rounded-2xl shadow-sm transition-all duration-200 group
+              ${message.isMe 
+                ? 'bg-primary-600 text-white rounded-br-md hover:shadow-md' 
+                : 'bg-white border border-gray-200 text-gray-900 rounded-bl-md hover:shadow-md hover:border-gray-300'
+              }
+            `}
+          >
+            {!message.isMe && activeChat.type === 'GLOBAL' && (
+              <div className="flex items-center space-x-2 mb-2">
+                <div className="text-xs font-semibold text-primary-600">
+                  {message.senderName}
+                </div>
+                <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+                <div className="text-xs text-gray-500">
+                  {formatMessageTime(message.timestamp)}
+                </div>
+                {message.isEncrypted && (
+                  <>
+                    <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+                    <div className={`text-xs flex items-center space-x-1 ${
+                      message.decrypted ? 'text-green-600' : 'text-yellow-600'
+                    }`}>
+                      <span>{message.decrypted ? '🔓' : '🔒'}</span>
+                      <span>{message.decrypted ? 'Decrypted' : 'Encrypted'}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            
+            <div className={`text-sm leading-relaxed whitespace-pre-wrap break-words ${
+              message.isEncrypted && !message.decrypted ? 'italic text-gray-500' : ''
+            }`}>
+              {message.isEncrypted && message.decryptionError && (
+                <div className="flex items-center space-x-2 mb-1 text-red-600">
+                  <span className="text-xs">🔒</span>
+                  <span className="text-xs font-medium">Decryption failed</span>
+                </div>
+              )}
+              {message.content}
+            </div>
+            
+            {!message.isMe && validatedMessages.has(message.id) && (
+              <div 
+                className="flex items-center space-x-1 mt-2 pt-2 border-t border-green-100 text-green-600 bg-green-50/30 rounded px-2 py-1"
+                onClick={(e) => e.stopPropagation()}
               >
-                <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                </svg>
-              </button>
-
-              {/* More Actions Menu */}
-              <div className="relative">
+                <CheckCircle className="w-4 h-4" />
+                <span className="text-xs font-medium">Validated</span>
+              </div>
+            )}
+            
+            {(message.isMe || activeChat.type === 'PRIVATE') && (
+              <div className={`
+                text-xs mt-1 flex items-center justify-end space-x-1
+                ${message.isMe ? 'text-primary-100' : 'text-gray-500'}
+              `}>
+                <span>{formatMessageTime(message.timestamp)}</span>
+                {message.isMe && (
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </div>
+            )}
+            
+            {!message.isMe && (
+              <div className="absolute top-1/2 -translate-y-1/2 right-[-3.5rem] flex flex-col space-y-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50">
                 <button
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
-                    setActiveMessageMenu(activeMessageMenu === message.id ? null : message.id);
+                    console.log('Reply button clicked for message:', message.id);
+                    setReplyTo(message);
+                    textareaRef.current?.focus();
+                    setActiveMessageMenu(null);
                   }}
-                  className="bg-white/90 backdrop-blur-sm hover:bg-gray-100 rounded-full p-1.5 sm:p-2 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 border border-gray-200"
-                  title="More actions"
+                  className="bg-white/90 backdrop-blur-sm hover:bg-gray-100 rounded-full p-2 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 border border-gray-200 cursor-pointer"
+                  title="Reply"
                 >
-                  <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                   </svg>
                 </button>
 
-                {/* Dropdown Menu */}
-                {activeMessageMenu === message.id && (
-                  <div className="absolute right-0 top-full mt-2 border border-gray-200 rounded-xl shadow-xl py-2 min-w-52 z-20 backdrop-blur-lg bg-white/95 animate-in slide-in-from-top-2 duration-200">
-                    {/* Start Private Chat */}
-                    <button
-                      onClick={() => handleStartPrivateChat(message)}
-                      className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3 transition-all duration-150 hover:translate-x-1 rounded-xl"
-                    >
-                      <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <div className="font-medium">Start private chat</div>
-                        {/* <div className="text-xs text-gray-500">Create 1-on-1 conversation</div> */}
-                      </div>
-                    </button>
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('More actions button clicked for message:', message.id);
+                      setActiveMessageMenu(activeMessageMenu === message.id ? null : message.id);
+                    }}
+                    className="bg-white/90 backdrop-blur-sm hover:bg-gray-100 rounded-full p-2 transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 border border-gray-200 cursor-pointer"
+                    title="More actions"
+                  >
+                    <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    </svg>
+                  </button>
 
-                    {/* Validate Message */}
-                    <div className="border-t border-gray-100 mt-1 pt-1">
+                  {activeMessageMenu === message.id && (
+                    <div 
+                      className="absolute right-0 top-full mt-2 border border-gray-200 rounded-xl shadow-xl py-2 min-w-52 z-[60] backdrop-blur-lg bg-white/95 animate-in slide-in-from-top-2 duration-200"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleValidateMessage(message.id);
+                          handleStartPrivateChat(message);
+                          setActiveMessageMenu(null);
                         }}
-                        className={`w-full px-4 py-3 text-left rounded-xl text-sm hover:bg-gray-50 flex items-center space-x-3 transition-all duration-150 hover:translate-x-1 ${
-                          validatedMessages.has(message.id) 
-                            ? 'text-green-600 bg-green-50/50' 
-                            : 'text-gray-700'
-                        }`}
+                        className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3 transition-all duration-150 hover:translate-x-1 rounded-xl"
                       >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          validatedMessages.has(message.id) 
-                            ? 'bg-green-50' 
-                            : 'bg-gray-50'
-                        }`}>
-                          <CheckCircle className={`w-4 h-4 ${
-                            validatedMessages.has(message.id) ? 'text-green-600' : 'text-gray-500'
-                          }`} />
+                        <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                          <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                          </svg>
                         </div>
                         <div>
-                          <div className="font-medium">
-                            {validatedMessages.has(message.id) ? 'Remove Validation' : 'Validate'}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {validatedMessages.has(message.id) ? 'Unmark as verified' : 'Mark as verified content'}
-                          </div>
+                          <div className="font-medium">Start private chat</div>
                         </div>
                       </button>
+
+                      <div className="border-t border-gray-100 mt-1 pt-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleValidateMessage(message.id);
+                            setActiveMessageMenu(null);
+                          }}
+                          className={`w-full px-4 py-3 text-left rounded-xl text-sm hover:bg-gray-50 flex items-center space-x-3 transition-all duration-150 hover:translate-x-1 ${
+                            validatedMessages.has(message.id) 
+                              ? 'text-green-600 bg-green-50/50' 
+                              : 'text-gray-700'
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            validatedMessages.has(message.id) 
+                              ? 'bg-green-50' 
+                              : 'bg-gray-50'
+                          }`}>
+                            <CheckCircle className={`w-4 h-4 ${
+                              validatedMessages.has(message.id) ? 'text-green-600' : 'text-gray-500'
+                            }`} />
+                          </div>
+                          <div>
+                            <div className="font-medium">
+                              {validatedMessages.has(message.id) ? 'Remove Validation' : 'Validate'}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {validatedMessages.has(message.id) ? 'Unmark as verified' : 'Mark as verified content'}
+                            </div>
+                          </div>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
     );
   };
 
@@ -340,7 +368,6 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
-      {/* Chat Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center space-x-3">
           <button
@@ -352,32 +379,28 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
             </svg>
           </button>
 
-          {/* Chat Avatar */}
           <div className={`
             w-10 h-10 rounded-full flex items-center justify-center font-semibold text-white
-            ${activeChat.type === 'public' ? 'bg-primary-600' : 'bg-gray-600'}
+            ${activeChat.type === 'GLOBAL' ? 'bg-primary-600' : 'bg-gray-600'}
           `}>
-            {activeChat.type === 'public' ? (
+            {activeChat.type === 'GLOBAL' ? (
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
               </svg>
             ) : (
-              activeChat.name.charAt(0).toUpperCase()
+              activeChat.roomName.charAt(0).toUpperCase()
             )}
           </div>
 
-          {/* Chat Info */}
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-gray-900">{activeChat.name}</h2>
+            <h2 className="text-lg font-semibold text-gray-900">{activeChat.roomName}</h2>
             <p className="text-sm text-gray-500">
-              {activeChat.type === 'public' ? 'Public support group' : 'Private conversation'}
+              {activeChat.type === 'GLOBAL' ? 'Public support group' : 'Private conversation'}
             </p>
           </div>
 
-          {/* Header Actions */}
           <div className="flex items-center space-x-2">
-            {/* History Button - Only show for public chats (replaces call icon) */}
-            {activeChat.type === 'public' && (
+            {activeChat.type === 'GLOBAL' && (
               <button 
                 onClick={() => setShowChatHistory(true)}
                 className="p-2 text-gray-500 hover:text-[#197067] hover:bg-gray-100 rounded-lg transition-colors"
@@ -390,8 +413,7 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
         </div>
       </div>
 
-      {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-1">
+      <div className="flex-1 overflow-y-auto overflow-x-visible p-4 space-y-1">
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-gray-500">
@@ -412,7 +434,6 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Reply Preview */}
       {replyTo && (
         <div className="bg-gray-100 border-b border-gray-200 px-4 py-2">
           <div className="flex items-center justify-between">
@@ -439,10 +460,8 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
         </div>
       )}
 
-      {/* Message Input */}
       <div className="bg-white border-t border-gray-200 p-4">
         <div className="flex items-center space-x-3">
-          {/* Emoji Picker Button */}
           <div className="relative">
             <button
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -453,7 +472,6 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
               </svg>
             </button>
 
-            {/* Emoji Picker */}
             {showEmojiPicker && (
               <div className="absolute bottom-full mb-2 left-0 bg-white border border-gray-200 rounded-lg shadow-lg p-2 grid grid-cols-6 gap-1 min-w-max">
                 {emojis.map(emoji => (
@@ -473,7 +491,6 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
             )}
           </div>
 
-          {/* Message Input */}
           <div className="flex-1 relative">
             <textarea
               ref={textareaRef}
@@ -490,7 +507,28 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
             />
           </div>
 
-          {/* Send Button */}
+          <button
+            onClick={() => setEncryptMessage(!encryptMessage)}
+            className={`
+              p-3 rounded-full transition-all duration-200 mr-2
+              ${encryptMessage
+                ? 'bg-green-100 text-green-600 hover:bg-green-200'
+                : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+              }
+            `}
+            title={encryptMessage ? "Encryption ON - Messages will be encrypted" : "Encryption OFF - Messages will be plain text"}
+          >
+            {encryptMessage ? (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+              </svg>
+            )}
+          </button>
+
           <button
             onClick={handleSendMessage}
             disabled={!newMessage.trim()}
@@ -509,7 +547,6 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
         </div>
       </div>
 
-      {/* Chat History Sidebar */}
       <ChatHistory
         messages={messages}
         onMessageClick={handleMessageNavigation}

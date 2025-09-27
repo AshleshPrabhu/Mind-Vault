@@ -6,6 +6,7 @@ dotenv.config({ path: './.env' });
 import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
 import { createMessage } from './controllers/message.controller.js';
 import { createChatRoom } from './controllers/chatroom.controller.js';
+import prisma from './utils/prisma.js';
 
 const usedNames = new Set();
 
@@ -42,9 +43,21 @@ io.on('connection', (socket) => {
         io.to(roomId).emit("user_joined", { userId, roomId });
     });
 
-    socket.on("send_message", async({ roomId, userId, content }) => {
-        const message = await createMessage({ roomId, senderId: userId, content });
-        io.to(roomId).emit("new_message", message);
+    socket.on("send_message", async({ roomId, userId, content, replyToId, isEncrypted, encryptedData }) => {
+        try {
+            const message = await createMessage({ 
+                roomId, 
+                senderId: userId, 
+                content,
+                replyToId: replyToId || null,
+                isEncrypted: isEncrypted || false,
+                encryptedData: encryptedData || null
+            });
+            io.to(roomId).emit("new_message", message);
+        } catch (error) {
+            console.error("Error sending message:", error);
+            socket.emit("error", { message: "Failed to send message" });
+        }
     });
 
     socket.on("join_private", ({ userId, peerId, type }) => {
@@ -61,6 +74,112 @@ io.on('connection', (socket) => {
 
     socket.on("typing_stop", ({ roomId, userId }) => {
         socket.to(roomId).emit("user_stopped_typing", { userId, roomId });
+    });
+
+    // Message validation handlers
+    socket.on("validate_message", async({ messageId, validatedBy }) => {
+        try {
+            // Check if user is a validator
+            const validator = await prisma.user.findUnique({
+                where: { id: validatedBy }
+            });
+
+            if (!validator || validator.role !== 'VALIDATOR') {
+                socket.emit("error", { message: "Only validators can validate messages" });
+                return;
+            }
+
+            // Update message validation status
+            const updatedMessage = await prisma.messages.update({
+                where: { messageId },
+                data: { isValidated: true },
+                include: {
+                    sender: {
+                        select: {
+                            id: true,
+                            username: true,
+                            profilePicture: true,
+                            walletAddress: true
+                        }
+                    },
+                    room: {
+                        select: {
+                            roomId: true,
+                            roomName: true,
+                            type: true
+                        }
+                    }
+                }
+            });
+
+            // Emit validation event to all users in the room
+            io.to(updatedMessage.roomId.toString()).emit("message_validated", {
+                messageId,
+                validatedBy,
+                message: updatedMessage
+            });
+
+        } catch (error) {
+            console.error("Error validating message:", error);
+            socket.emit("error", { message: "Failed to validate message" });
+        }
+    });
+
+    socket.on("unvalidate_message", async({ messageId, unvalidatedBy }) => {
+        try {
+            // Check if user is a validator
+            const validator = await prisma.user.findUnique({
+                where: { id: unvalidatedBy }
+            });
+
+            if (!validator || validator.role !== 'VALIDATOR') {
+                socket.emit("error", { message: "Only validators can unvalidate messages" });
+                return;
+            }
+
+            // Update message validation status
+            const updatedMessage = await prisma.messages.update({
+                where: { messageId },
+                data: { isValidated: false },
+                include: {
+                    sender: {
+                        select: {
+                            id: true,
+                            username: true,
+                            profilePicture: true,
+                            walletAddress: true
+                        }
+                    },
+                    room: {
+                        select: {
+                            roomId: true,
+                            roomName: true,
+                            type: true
+                        }
+                    }
+                }
+            });
+
+            // Emit unvalidation event to all users in the room
+            io.to(updatedMessage.roomId.toString()).emit("message_unvalidated", {
+                messageId,
+                unvalidatedBy,
+                message: updatedMessage
+            });
+
+        } catch (error) {
+            console.error("Error unvalidating message:", error);
+            socket.emit("error", { message: "Failed to unvalidate message" });
+        }
+    });
+
+    // User presence handlers
+    socket.on("user_online", ({ userId }) => {
+        socket.broadcast.emit("user_online", { userId });
+    });
+
+    socket.on("user_offline", ({ userId }) => {
+        socket.broadcast.emit("user_offline", { userId });
     });
 
     socket.on('disconnect', () => {

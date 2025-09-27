@@ -1,11 +1,26 @@
 import type { Request, Response } from "express";
 import prisma from "../utils/prisma.js";
 
-const createMessage = async ({ content, senderId, roomId, replyToId }: {
+interface EncryptedData {
+    ciphertext: string;
+    dataToEncryptHash: string;
+    accessControlConditions: any[];
+}
+
+const createMessage = async ({ 
+    content, 
+    senderId, 
+    roomId, 
+    replyToId, 
+    isEncrypted = false, 
+    encryptedData 
+}: {
     content: string;
     senderId: string | number;
     roomId: string | number;
     replyToId?: string | number | null;
+    isEncrypted?: boolean;
+    encryptedData?: EncryptedData;
 }) => {
     try {
         if (!content || !senderId || !roomId) {
@@ -40,7 +55,9 @@ const createMessage = async ({ content, senderId, roomId, replyToId }: {
                 content,
                 senderId: parseInt(senderId.toString()),
                 roomId: parseInt(roomId.toString()),
-                replyToId: replyToId ? parseInt(replyToId.toString()) : null
+                replyToId: replyToId ? parseInt(replyToId.toString()) : null,
+                isEncrypted,
+                encryptedData: encryptedData ? JSON.stringify(encryptedData) : null
             },
             include: {
                 sender: {

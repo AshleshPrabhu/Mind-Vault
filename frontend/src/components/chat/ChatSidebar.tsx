@@ -3,7 +3,7 @@ import type { ChatRoom } from '../../pages/Chat';
 
 interface ChatSidebarProps {
   chatRooms: ChatRoom[];
-  activeChat: ChatRoom;
+  activeChat: ChatRoom | null;
   onChatSelect: (chat: ChatRoom) => void;
   onClose: () => void;
 }
@@ -14,8 +14,8 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onChatSelect,
   onClose
 }) => {
-  const publicChats = chatRooms.filter(chat => chat.type === 'public');
-  const privateChats = chatRooms.filter(chat => chat.type === 'private');
+  const publicChats = chatRooms.filter(chat => chat.type === 'GLOBAL');
+  const privateChats = chatRooms.filter(chat => chat.type === 'PRIVATE');
 
   const formatLastMessageTime = (time?: Date) => {
     if (!time) return '';
@@ -37,7 +37,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
       onClick={() => onChatSelect(chat)}
       className={`
         p-4 cursor-pointer transition-all duration-200 border-l-4 hover:bg-primary-50
-        ${activeChat.id === chat.id 
+        ${activeChat?.roomId === chat.roomId 
           ? 'bg-primary-50 border-primary-600' 
           : 'border-transparent hover:border-primary-200'
         }
@@ -47,14 +47,14 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
         {/* Avatar */}
         <div className={`
           w-12 h-12 rounded-full flex items-center justify-center font-semibold text-white
-          ${chat.type === 'public' ? 'bg-primary-600' : 'bg-gray-600'}
+          ${chat.type === 'GLOBAL' ? 'bg-primary-600' : 'bg-gray-600'}
         `}>
-          {chat.type === 'public' ? (
+          {chat.type === 'GLOBAL' ? (
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
               <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
             </svg>
           ) : (
-            chat.name.charAt(0).toUpperCase()
+            chat.roomName.charAt(0).toUpperCase()
           )}
         </div>
 
@@ -63,9 +63,9 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           <div className="flex items-center justify-between mb-1">
             <h3 className={`
               text-sm font-semibold truncate
-              ${activeChat.id === chat.id ? 'text-primary-700' : 'text-gray-900'}
+              ${activeChat?.roomId === chat.roomId ? 'text-primary-700' : 'text-gray-900'}
             `}>
-              {chat.name}
+              {chat.roomName}
             </h3>
             {chat.lastMessageTime && (
               <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
@@ -85,7 +85,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             )}
           </div>
 
-          {chat.type === 'private' && chat.participantAddress && (
+          {chat.type === 'PRIVATE' && chat.participantAddress && (
             <p className="text-xs text-gray-400 mt-1 truncate">
               {chat.participantAddress}
             </p>
@@ -122,7 +122,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </h2>
           </div>
           {publicChats.map(chat => (
-            <ChatRoomItem key={chat.id} chat={chat} />
+            <ChatRoomItem key={chat.roomId} chat={chat} />
           ))}
         </div>
 
@@ -135,7 +135,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           </div>
           {privateChats.length > 0 ? (
             privateChats.map(chat => (
-              <ChatRoomItem key={chat.id} chat={chat} />
+              <ChatRoomItem key={chat.roomId} chat={chat} />
             ))
           ) : (
             <div className="p-4 text-center text-gray-500">
