@@ -30,8 +30,7 @@ enum Role {
 enum RoomType {
   GLOBAL
   PRIVATE
-  NGO
-  MOOD
+  AI
 }
 
 model ChatRooms {

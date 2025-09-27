@@ -3,6 +3,25 @@ import http from 'http';
 import { app } from './app.js';
 import { Server } from 'socket.io';
 dotenv.config({ path: './.env' });
+import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
+
+const usedNames = new Set();
+
+function generateUniqueName() {
+    let name;
+    do {
+        name = uniqueNamesGenerator({
+        dictionaries: [adjectives, animals],
+        separator: '-',
+        style: 'lowerCase',
+        }) + '-' + Math.floor(Math.random() * 10000);
+    } while (usedNames.has(name));
+    const avatarUrl = `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${encodeURIComponent(name)}`;
+
+    usedNames.add(name);
+    return { name, avatarUrl };
+}
+export default generateUniqueName;
 
 const server = http.createServer(app);
 const io = new Server(server, {
