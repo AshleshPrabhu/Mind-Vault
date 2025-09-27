@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Chat from './pages/Chat';
 import Profile from './pages/Profile';
 import AIChat from './pages/AIChat';
+import About from './pages/About';
 import './index.css';
 
 function App() {
@@ -75,6 +76,7 @@ function App() {
             }
           >
             <Route index element={<Home />} />
+            <Route path="about" element={<About />} />
           </Route>
 
           {/* Private Routes - Temporarily accessible without wallet connection */}

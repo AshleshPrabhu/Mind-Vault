@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import PrivateHeader from '../components/PrivateHeader';
 
 interface PrivateLayoutProps {
@@ -11,12 +11,19 @@ const PrivateLayout: React.FC<PrivateLayoutProps> = ({
   walletAddress, 
   onDisconnectWallet 
 }) => {
+  const location = useLocation();
+  
+  // Hide PrivateHeader on AI Chat page since it has its own header
+  const shouldShowHeader = !location.pathname.includes('/app/ai-chat');
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <PrivateHeader 
-        walletAddress={walletAddress}
-        onDisconnectWallet={onDisconnectWallet}
-      />
+      {shouldShowHeader && (
+        <PrivateHeader 
+          walletAddress={walletAddress}
+          onDisconnectWallet={onDisconnectWallet}
+        />
+      )}
       <main> {/* Add padding to account for fixed header */}
         <Outlet />
       </main>

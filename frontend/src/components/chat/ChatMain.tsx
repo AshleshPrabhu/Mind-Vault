@@ -520,7 +520,7 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
       />
 
       {/* AI Assistant Bubble - Fixed Position */}
-      <div className="fixed bottom-24 right-6 z-50">
+      <div className="fixed top-3 right-18 z-50">
         <button
           onClick={() => navigate('/app/ai-chat')}
           className="
@@ -528,17 +528,14 @@ const ChatMain: React.FC<ChatMainProps> = ({ activeChat, messages, onMenuClick, 
             text-white p-4 rounded-full shadow-lg hover:shadow-xl
             transform transition-all duration-300 hover:scale-110 active:scale-95
             ring-4 ring-primary-100 hover:ring-primary-200
-            animate-pulse hover:animate-none
+            hover:animate-none
           "
           title="Chat with AI Assistant"
         >
-          {/* Floating sparkles animation */}
-          <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full animate-ping"></div>
-          <div className="absolute -top-2 -left-1 w-2 h-2 bg-blue-400 rounded-full animate-ping" style={{ animationDelay: '0.5s' }}></div>
           
           <div className="relative flex items-center justify-center">
-            <Bot className="w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
-            <Sparkles className="w-3 h-3 absolute -top-1 -right-1 opacity-75 group-hover:opacity-100 transition-opacity duration-300" />
+            <Bot className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+            <Sparkles className="w-2 h-2 absolute -top-1 -right-1 opacity-75 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
           
           {/* Tooltip */}

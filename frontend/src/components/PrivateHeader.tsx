@@ -16,27 +16,13 @@ const PrivateHeader: React.FC<PrivateHeaderProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const navigate = useNavigate();
-  // const location = useLocation();
   // const { currentChatType } = useChatContext();
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  // Check if we should show history tab (only for public chats)
-  // const isOnChatPage = location.pathname.includes('/chat') || location.pathname.includes('/chats');
-  // const shouldShowHistory = false; // Removed - history is now in ChatMain header
-
-  const baseNavItems = [
-    { name: 'Chats', href: '/app/chats', icon: (
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-      </svg>
-    )},
-  ];
-
-  // Use baseNavItems directly (no dynamic history tab)
-  const navItems = baseNavItems;
+  // No navigation items in header - moved to individual pages
 
   return (
     <header className="bg-white border-b border-gray-200 shadow-sm">
@@ -50,24 +36,9 @@ const PrivateHeader: React.FC<PrivateHeaderProps> = ({
           </div>
 
 
-          {/* Desktop Navigation */}
+          {/* Navigation moved to individual pages */}
           <div className="hidden lg:flex items-center space-x-1">
-            {navItems.filter(item => item && item.href).map((item, index) => (
-              <button
-                key={index}
-                onClick={() => navigate(item.href)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  location.pathname === item.href 
-                    ? 'bg-primary-50 text-primary-600 border border-primary-200' 
-                    : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
-                }`}
-              >
-                <span className="text-current">
-                  {item.icon}
-                </span>
-                <span>{item.name}</span>
-              </button>
-            ))}
+            {/* Navigation items removed - now handled by individual pages */}
           </div>
 
           {/* Right Side - Notifications & Profile */}
@@ -177,24 +148,12 @@ const PrivateHeader: React.FC<PrivateHeaderProps> = ({
         </div>
       </nav>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - Navigation moved to individual pages */}
       <div className={`lg:hidden transition-all duration-300 overflow-hidden ${
         isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
       }`}>
         <div className="bg-gray-50 border-t border-gray-200 px-4 py-4 space-y-2">
-          {navItems.filter(item => item && item.href).map((item, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                navigate(item.href);
-                setIsMobileMenuOpen(false);
-              }}
-              className="w-full flex items-center space-x-3 px-4 py-3 bg-white rounded-lg text-gray-700 hover:text-primary-600 hover:bg-primary-50 transition-all duration-200 border border-gray-100"
-            >
-              {item.icon}
-              <span>{item.name}</span>
-            </button>
-          ))}
+          {/* Navigation items removed - now handled by individual pages */}
         </div>
       </div>
     </header>

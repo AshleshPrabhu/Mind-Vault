@@ -30,9 +30,9 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const navItems = [
-    { name: 'Features', href: '#features' },
-    { name: 'Community', href: '#community' },
-    { name: 'About', href: '#about' },
+    { name: 'Features', href: '/#features' },
+    { name: 'Demo', href: '/demo' },
+    { name: 'About', href: '/about' },
   ];
 
   return (
@@ -47,10 +47,10 @@ const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between h-16 lg:h-20">
           
           {/* Logo Section */}
-          <div className='flex items-center space-x-2'>
+          <a className='flex items-center space-x-2' href="/">
             <img src={logo} alt="MindVault Logo" className="h-12 lg:h-14" />
             <img src={logoText} alt="MindVault Text Logo" className="h-6 lg:h-24 hidden sm:block" />
-          </div>
+          </a>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-8">

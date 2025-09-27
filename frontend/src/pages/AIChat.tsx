@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, MessageCircle } from 'lucide-react';
+import logo from '../assets/logo_only.png';
+import logoText from '../assets/logo_text.png';
 
 // Types
 interface Message {
@@ -84,6 +86,14 @@ const AIChat: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
   const [isListening, setIsListening] = useState(false);
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+
+  // Mock user data - in real app this would come from props or context
+  const walletAddress = "0x1234567890abcdef";
+
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
 
   // Refs
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -326,17 +336,105 @@ Please reach out to one of these numbers. They are there to help.
               </button>
             </div>
             
-            <h1 className="text-2xl font-bold text-gradient-primary">
-              💬 MindVault AI Companion
-            </h1>
+            <div className="text-2xl font-bold text-gradient-primary flex items-center space-x-2">
+                <a className='flex items-center space-x-2' href="/">
+                    <img src={logo} alt="MindVault Logo" className="h-6 lg:h-8" />
+                    <img src={logoText} alt="MindVault Text Logo" className="h-10 lg:h-20 hidden sm:block" />
+                </a>
+              AI Companion
+            </div>
             
-            <div className="w-20 h-9" /> {/* Spacer for centering */}
+            {/* Account Menu - Same as PrivateHeader */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
+                className="flex items-center space-x-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+              >
+                <div className="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">
+                    {walletAddress ? walletAddress.slice(2, 4).toUpperCase() : 'MV'}
+                  </span>
+                </div>
+                <div className="hidden sm:block text-left">
+                  <div className="text-sm text-gray-900 font-medium">User</div>
+                  <div className="text-xs text-gray-500 font-mono">
+                    {walletAddress ? formatAddress(walletAddress) : '0x1234...5678'}
+                  </div>
+                </div>
+                <svg className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isAccountMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {isAccountMenuOpen && (
+                <>
+                  {/* Backdrop */}
+                  <div 
+                    className="fixed inset-0 z-40" 
+                    onClick={() => setIsAccountMenuOpen(false)}
+                  />
+                  
+                  {/* Menu Content */}
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <div className="p-2">
+                      {/* Profile Header */}
+                      <div className="p-3 border-b border-gray-100">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center">
+                            <span className="text-white font-medium">
+                              {walletAddress ? walletAddress.slice(2, 4).toUpperCase() : 'MV'}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="text-gray-900 font-medium">Anonymous User</div>
+                            <div className="text-xs text-gray-500 font-mono">
+                              {walletAddress ? formatAddress(walletAddress) : '0x1234...5678'}
+                            </div>
+                            <div className="text-xs text-green-600 mt-1">● Connected</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Menu Items */}
+                      <div className="py-2">
+                        <button 
+                          className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors text-left"
+                          onClick={() => {
+                            navigate('/app/profile');
+                            setIsAccountMenuOpen(false);
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          <span>Profile</span>
+                        </button>
+                        
+                        <button 
+                          className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors text-left"
+                          onClick={() => {
+                            navigate('/');
+                            setIsAccountMenuOpen(false);
+                          }}
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          <span>Disconnect</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
-          <div className="max-w-4xl mx-auto space-y-4">
+          <div className="max-w-6xl mx-auto space-y-4">
             {messages.map((msg, i) => (
               <div
                 key={i}
@@ -387,7 +485,7 @@ Please reach out to one of these numbers. They are there to help.
 
         {/* Input Area */}
         <div className="bg-white border-t border-gray-200 p-6">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-6xl mx-auto">
             <div className="flex items-end space-x-4 bg-gray-50 rounded-2xl p-3 border border-gray-200 focus-within:border-primary-300 focus-within:ring-4 focus-within:ring-primary-100 transition-all duration-200">
               {/* Voice Input Button */}
               <button
