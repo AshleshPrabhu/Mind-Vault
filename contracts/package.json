@@ -1,5 +1,23 @@
 {
+  "name": "mind-vault-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for Mind Vault project",
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "deploy:all:sepolia": "forge script script/DeployAll.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY",
+    "deploy:all:mumbai": "forge script script/DeployAll.s.sol --rpc-url $POLYGON_MUMBAI_RPC_URL --broadcast --verify --etherscan-api-key $POLYGONSCAN_API_KEY",
+    "deploy:all:mainnet": "forge script script/DeployAll.s.sol --rpc-url $MAINNET_RPC_URL --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY",
+    "deploy:all:polygon": "forge script script/DeployAll.s.sol --rpc-url $POLYGON_RPC_URL --broadcast --verify --etherscan-api-key $POLYGONSCAN_API_KEY",
+    "deploy:token:sepolia": "forge script script/DeployAshToken.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY",
+    "deploy:manas:sepolia": "forge script script/DeployManasFoundation.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY",
+    "deploy:minds:sepolia": "forge script script/DeployMindsFoundation.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY",
+    "deploy:mitram:sepolia": "forge script script/DeployMitramFoundation.s.sol --rpc-url $SEPOLIA_RPC_URL --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY"
+  },
   "dependencies": {
     "@openzeppelin/contracts": "^5.4.0"
+  },
+  "devDependencies": {
+    "forge-std": "^1.7.6"
   }
 }

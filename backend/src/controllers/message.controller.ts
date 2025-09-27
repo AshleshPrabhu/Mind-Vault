@@ -301,7 +301,7 @@ const validateMessage = async (req: Request, res: Response) => {
 
         const updatedMessage = await prisma.messages.update({
             where: { messageId: parseInt(messageId) },
-            data: { isValidated: true },
+            data: { isValidated: true,rewarded:true },
             include: {
                 sender: {
                     select: {
