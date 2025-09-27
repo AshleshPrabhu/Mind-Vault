@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 // import { useChatContext } from '../contexts/ChatContext';
+import logo from '../assets/logo_only.png';
+import logoText from '../assets/logo_text.png';
 
 interface PrivateHeaderProps {
   walletAddress?: string;
@@ -42,36 +44,11 @@ const PrivateHeader: React.FC<PrivateHeaderProps> = ({
         <div className="flex items-center justify-between h-16">
           
           {/* Logo Section */}
-          <div 
-            className="flex items-center space-x-3 group cursor-pointer"
-            onClick={() => navigate('/app/chats')}
-          >
-            <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center shadow-md hover:shadow-lg transition-shadow">
-              <div className="w-6 h-6 relative">
-                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-white">
-                  <path 
-                    d="M12 2C8.5 2 6 4.5 6 7.5c0 1.5.5 3 1.5 4C6.5 12.5 6 14 6 15.5c0 3 2.5 5.5 6 5.5s6-2.5 6-5.5c0-1.5-.5-3-1.5-4 1-1 1.5-2.5 1.5-4C18 4.5 15.5 2 12 2z" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    fill="rgba(25, 112, 103, 0.1)"
-                  />
-                  <circle cx="9" cy="9" r="1.5" fill="currentColor" />
-                  <circle cx="15" cy="9" r="1.5" fill="currentColor" />
-                  <path d="M9 15c1 1 3 1 6 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </div>
-            </div>
-            
-            <div className="flex flex-col">
-              <div className="text-lg font-bold">
-                <span className="text-primary-600">Mind</span>
-                <span className="text-gray-800">Vault</span>
-              </div>
-              <span className="text-xs text-gray-500 -mt-1 hidden sm:block">
-                Mental Health Support
-              </span>
-            </div>
+          <div className='flex items-center space-x-2'>
+            <img src={logo} alt="MindVault Logo" className="h-10 lg:h-12" />
+            <img src={logoText} alt="MindVault Text Logo" className="h-6 lg:h-20 hidden sm:block" />
           </div>
+
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-1">

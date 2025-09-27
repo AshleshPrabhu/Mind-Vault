@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import logo from '../assets/logo_only.png';
+import logoText from '../assets/logo_text.png';
 
 interface HeaderProps {
   onConnectWallet?: () => void;
@@ -45,33 +47,9 @@ const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between h-16 lg:h-20">
           
           {/* Logo Section */}
-          <div className="flex items-center space-x-3 group cursor-pointer">
-            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-primary-600 rounded-xl flex items-center justify-center group-hover:bg-primary-700 transition-colors duration-200">
-              <div className="w-6 h-6 lg:w-7 lg:h-7 relative">
-                {/* Brain/Mind Icon */}
-                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-white">
-                  <path 
-                    d="M12 2C8.5 2 6 4.5 6 7.5c0 1.5.5 3 1.5 4C6.5 12.5 6 14 6 15.5c0 3 2.5 5.5 6 5.5s6-2.5 6-5.5c0-1.5-.5-3-1.5-4 1-1 1.5-2.5 1.5-4C18 4.5 15.5 2 12 2z" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    fill="rgba(255, 255, 255, 0.1)"
-                  />
-                  <circle cx="9" cy="9" r="1.5" fill="currentColor" />
-                  <circle cx="15" cy="9" r="1.5" fill="currentColor" />
-                  <path d="M9 15c1 1 3 1 6 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </div>
-            </div>
-            
-            <div className="flex flex-col">
-              <div className="text-xl lg:text-2xl font-bold">
-                <span className="text-primary-600">Mind</span>
-                <span className="text-gray-900">Vault</span>
-              </div>
-              <span className="text-xs text-gray-500 -mt-1 hidden sm:block">
-                Mental Wellness Platform
-              </span>
-            </div>
+          <div className='flex items-center space-x-2'>
+            <img src={logo} alt="MindVault Logo" className="h-12 lg:h-14" />
+            <img src={logoText} alt="MindVault Text Logo" className="h-6 lg:h-24 hidden sm:block" />
           </div>
 
           {/* Desktop Navigation */}

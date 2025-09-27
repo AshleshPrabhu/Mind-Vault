@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ContainerTextFlip } from '../components/ui/container-text-flip';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -11,17 +12,17 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white scrollbar-thin">
+    <div className="min-h-screen bg-white scrollbar-thin -mt-8">
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           
           {/* Left Column - Content */}
-          <div className="text-left space-y-8">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight tracking-tight">
+          <div className="text-left space-y-6">
+            <h1 className="text-4xl sm:text-3xl lg:text-6xl font-bold text-gray-900 leading-tight tracking-tight">
               Get mental health support
               <br />
-              <span className="text-primary-600">anonymously</span>
+              <ContainerTextFlip className='text-primary-600' />
               <br />
               all through Web3.
             </h1>
