@@ -1,22 +1,26 @@
 import type { Request, Response } from "express";
 import prisma from "../utils/prisma.js";
 
-const createChatRoom = async (req: Request, res: Response) => {
+const createChatRoom = async (data: { 
+    roomName: string, 
+    type: 'GLOBAL' | 'PRIVATE' | 'AI', 
+    participantIds?: string[] 
+}) => {
     try {
-        const { roomName, type, participantIds } = req.body;
+        const { roomName, type, participantIds } = data;
         
         if (!roomName || !type) {
-            return res.status(400).json({
+            return {
                 message: "Room name and type are required",
                 success: false
-            });
+            };
         }
 
-        if (!['GLOBAL', 'PRIVATE','AI'].includes(type)) {
-            return res.status(400).json({
-                message: "Room type must be either GLOBAL or PRIVATE",
+        if (!['GLOBAL', 'PRIVATE', 'AI'].includes(type)) {
+            return {
+                message: "Room type must be either GLOBAL, PRIVATE or AI",
                 success: false
-            });
+            };
         }
 
         const existingRoom = await prisma.chatRooms.findUnique({
@@ -24,14 +28,14 @@ const createChatRoom = async (req: Request, res: Response) => {
         });
 
         if (existingRoom) {
-            return res.status(400).json({
+            return {
                 message: "Room name already exists",
                 success: false
-            });
+            };
         }
 
         let participants: number[] = [];
-        if (participantIds && Array.isArray(participantIds) && type === 'PRIVATE' ) {
+        if (participantIds && Array.isArray(participantIds) && type === 'PRIVATE') {
             participants = [...new Set([...participants, ...participantIds.map((id: string) => parseInt(id))])];
         }
 
@@ -41,10 +45,10 @@ const createChatRoom = async (req: Request, res: Response) => {
             });
 
             if (existingUsers.length !== participants.length) {
-                return res.status(400).json({
+                return {
                     message: "One or more participants not found",
                     success: false
-                });
+                };
             }
         }
 
@@ -78,14 +82,34 @@ const createChatRoom = async (req: Request, res: Response) => {
             }
         });
 
-        return res.status(201).json({
+        return {
             message: "Chat room created successfully",
             data: newChatRoom,
             success: true
-        });
+        };
 
     } catch (error) {
         console.error("Error creating chat room:", error);
+        return {
+            message: "Internal server error",
+            success: false
+        };
+    }
+}
+
+const createChatRoomEndpoint = async (req: Request, res: Response) => {
+    try {
+        const { roomName, type, participantIds } = req.body;
+        
+        const result = await createChatRoom({ roomName, type, participantIds });
+        
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+        
+        return res.status(201).json(result);
+    } catch (error) {
+        console.error("Error in create chat room endpoint:", error);
         return res.status(500).json({
             message: "Internal server error",
             success: false
@@ -174,4 +198,5 @@ const getChatRoomById = async (req: Request, res: Response) => {
 export {
     createChatRoom,
     getChatRoomById,
+    createChatRoomEndpoint
 };

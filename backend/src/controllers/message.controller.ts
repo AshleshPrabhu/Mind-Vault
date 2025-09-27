@@ -1,55 +1,46 @@
 import type { Request, Response } from "express";
 import prisma from "../utils/prisma.js";
 
-const createMessage = async (req: Request, res: Response) => {
+const createMessage = async ({ content, senderId, roomId, replyToId }: {
+    content: string;
+    senderId: string | number;
+    roomId: string | number;
+    replyToId?: string | number | null;
+}) => {
     try {
-        const { content, senderId, roomId, replyToId } = req.body;
-        
         if (!content || !senderId || !roomId) {
-            return res.status(400).json({
-                message: "Content, senderId, and roomId are required",
-                success: false
-            });
+            throw new Error("Content, senderId, and roomId are required");
         }
 
         const sender = await prisma.user.findUnique({
-            where: { id: parseInt(senderId) }
+            where: { id: parseInt(senderId.toString()) }
         });
         if (!sender) {
-            return res.status(404).json({
-                message: "Sender not found",
-                success: false
-            });
+            throw new Error("Sender not found");
         }
 
         const room = await prisma.chatRooms.findUnique({
-            where: { roomId: parseInt(roomId) }
+            where: { roomId: parseInt(roomId.toString()) }
         });
         if (!room) {
-            return res.status(404).json({
-                message: "Chat room not found",
-                success: false
-            });
+            throw new Error("Chat room not found");
         }
 
         if (replyToId) {
             const parentMessage = await prisma.messages.findUnique({
-                where: { messageId: parseInt(replyToId) }
+                where: { messageId: parseInt(replyToId.toString()) }
             });
             if (!parentMessage) {
-                return res.status(404).json({
-                    message: "Parent message not found",
-                    success: false
-                });
+                throw new Error("Parent message not found");
             }
         }
 
-        const newMessage = await prisma.messages.create({
+        return await prisma.messages.create({
             data: {
                 content,
-                senderId: parseInt(senderId),
-                roomId: parseInt(roomId),
-                replyToId: replyToId ? parseInt(replyToId) : null
+                senderId: parseInt(senderId.toString()),
+                roomId: parseInt(roomId.toString()),
+                replyToId: replyToId ? parseInt(replyToId.toString()) : null
             },
             include: {
                 sender: {
@@ -89,19 +80,10 @@ const createMessage = async (req: Request, res: Response) => {
                 }
             }
         });
-
-        return res.status(201).json({
-            message: "Message created successfully",
-            data: newMessage,
-            success: true
-        });
         
     } catch (error) {
         console.error("Error in creating message:", error);
-        return res.status(500).json({
-            message: "Internal server error",
-            success: false
-        });
+        throw error;
     }
 }
 
@@ -226,7 +208,6 @@ const likeMessage = async (req: Request, res: Response) => {
     }
 }
 
-
 const dislikeMessage = async (req: Request, res: Response) => {
     try {
         const { messageId } = req.params;
@@ -276,7 +257,6 @@ const dislikeMessage = async (req: Request, res: Response) => {
         });
     }
 }
-
 
 const validateMessage = async (req: Request, res: Response) => {
     try {
