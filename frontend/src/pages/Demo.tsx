@@ -1,6 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, MessageCircle, Bot, User, ArrowRight, Star } from 'lucide-react';
+import { MessageCircle, Bot, User, ArrowRight, Star } from 'lucide-react';
+import chatRoomSS from "../assets/screenshot 2025-09-28 092631.png"
+import aiChatSS from "../assets/Screenshot 2025-09-28 093026.png"
+import profileSS from "../assets/Screenshot 2025-09-28 092802.png"
 
 const Demo: React.FC = () => {
   const navigate = useNavigate();
@@ -31,7 +34,7 @@ const Demo: React.FC = () => {
           <div className="max-w-5xl mx-auto">
             <div className="relative bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
               <div className="aspect-video bg-gray-900 rounded-xl flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                {/* <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
                   <div className="text-center">
                     <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 hover:bg-white/20 transition-colors cursor-pointer group">
                       <Play className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
@@ -39,16 +42,17 @@ const Demo: React.FC = () => {
                     <h3 className="text-2xl font-semibold text-white mb-2">Demo Video</h3>
                     <p className="text-white/70">Coming Soon - Full Platform Walkthrough</p>
                   </div>
-                </div>
+                </div> */}
                 
-                {/* <video 
-                  className="w-full h-full object-cover rounded-lg"
-                  controls
-                  poster="/path-to-video-thumbnail.jpg"
+                <iframe
+                  className="w-full h-full rounded-lg"
+                  src="https://www.youtube.com/embed/Dhnbe8IFn64?si=nfv72p1_I2wGt_XK"
+                  title="MindVault Demo Video"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
                 >
-                  <source src="/path-to-demo-video.mp4" type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video> */}
+                </iframe>
               </div>
             </div>
           </div>
@@ -68,18 +72,12 @@ const Demo: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-20">
             <div className="group">
               <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-200">
-                <div className="aspect-video bg-gradient-to-br from-blue-50 to-primary-50 flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary-500/10 to-blue-500/10"></div>
-                  <div className="relative text-center">
-                    <MessageCircle className="w-16 h-16 text-primary-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">Chat Room Screenshot</h3>
-                    <p className="text-gray-600">Global & Private Conversations</p>
-                  </div>
-                  {/* <img 
-                    src="/images/demo/chat-room.png" 
+                <div className="bg-gradient-to-br from-blue-50 to-primary-50 flex items-center justify-center relative overflow-hidden">
+                  <img 
+                    src={chatRoomSS}
                     alt="Chat Room Interface"
-                    className="w-full h-full object-cover"
-                  /> */}
+                    className="w-full h-full"
+                  />
                 </div>
                 <div className="p-8">
                   <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
@@ -110,18 +108,12 @@ const Demo: React.FC = () => {
 
             <div className="group">
               <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-200">
-                <div className="aspect-video bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10"></div>
-                  <div className="relative text-center">
-                    <Bot className="w-16 h-16 text-purple-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">AI Assistant Screenshot</h3>
-                    <p className="text-gray-600">24/7 Mental Health Support</p>
-                  </div>
-                  {/* <img 
-                    src="/images/demo/ai-chatbot.png" 
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center relative overflow-hidden">
+                  <img 
+                    src={aiChatSS} 
                     alt="AI Chatbot Interface"
-                    className="w-full h-full object-cover"
-                  /> */}
+                    className="w-full h-full"
+                  />
                 </div>
                 <div className="p-8">
                   <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
@@ -153,19 +145,13 @@ const Demo: React.FC = () => {
 
           <div className="group mb-20">
             <div className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-200">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-                <div className="aspect-square lg:aspect-video bg-gradient-to-br from-green-50 to-teal-50 flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-teal-500/10"></div>
-                  <div className="relative text-center">
-                    <User className="w-16 h-16 text-green-600 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">Profile Screenshot</h3>
-                    <p className="text-gray-600">User Dashboard & Analytics</p>
-                  </div>
-                  {/* <img 
-                    src="/images/demo/profile.png" 
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 items-center">
+                <div className="lg:aspect-video bg-gradient-to-br from-green-50 to-teal-50 flex items-center justify-center relative overflow-hidden">
+                  <img 
+                    src={profileSS}
                     alt="User Profile Interface"
-                    className="w-full h-full object-cover"
-                  /> */}
+                    className="w-full h-full"
+                  />
                 </div>
                 <div className="p-8 lg:p-12 flex flex-col justify-center">
                   <h3 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
