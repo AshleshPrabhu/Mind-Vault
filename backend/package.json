@@ -1,15 +1,47 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "MindVault Backend - Mental Health Support Platform API",
+  "main": "dist/index.js",
   "type": "module",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsc -b && node dist/index.js"
+  "engines": {
+    "node": ">=18.0.0"
   },
-  "keywords": [],
-  "author": "",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "npm run clean && npm run postinstall && npm run db:generate && npm install && tsc && npm run postbuild",
+    "postbuild": "node fix-imports.js",
+    "start": "node dist/index.js",
+    "start:prod": "NODE_ENV=production npm start",
+    "postinstall": "npm install --save-dev @types/express @types/cookie-parser @types/cors @types/node @types/unique-names-generator",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset",
+    "prestart": "npm run db:generate",
+    "dev:build": "tsc",
+    "dev:start": "nodemon dist/index.js",
+    "dev:watch": "tsc --watch"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "typescript",
+    "socket.io",
+    "prisma",
+    "rest-api",
+    "mental-health",
+    "web3",
+    "lit-protocol",
+    "blockchain"
+  ],
+  "author": "MindVault Team",
   "license": "ISC",
   "dependencies": {
     "@lit-protocol/auth-helpers": "^7.3.1",
@@ -22,14 +54,26 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.1.0",
     "prisma": "^6.16.2",
     "socket.io": "^4.8.1",
     "typescript": "^5.9.2",
-    "unique-names-generator": "^4.7.1"
+    "unique-names-generator": "^4.7.1",
+    "ethers": "^6.13.4"
   },
   "devDependencies": {
+    "@eslint/js": "^9.28.0",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3"
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.15.30",
+    "@types/unique-names-generator": "^4.6.0",
+    "eslint": "^9.28.0",
+    "globals": "^16.2.0",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript-eslint": "^8.33.0"
   }
 }
