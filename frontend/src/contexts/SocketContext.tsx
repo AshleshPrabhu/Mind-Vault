@@ -80,7 +80,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     console.log('Connecting socket for user:', user.id);
 
-    const newSocket: Socket<ServerToClientEvents, ClientToServerEvents> = io('http://localhost:3000', {
+    const newSocket: Socket<ServerToClientEvents, ClientToServerEvents> = io('https://mind-vault-2lwh.onrender.com', {
       withCredentials: true,
       transports: ['websocket', 'polling'],
       forceNew: true,
