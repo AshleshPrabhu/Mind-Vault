@@ -44,21 +44,23 @@ model ChatRooms {
 }
 
 model Messages {
-  messageId   Int        @id @default(autoincrement())
-  content     String
-  sender      User       @relation(fields: [senderId], references: [id])
-  senderId    Int
-  room        ChatRooms  @relation(fields: [roomId], references: [roomId])
-  roomId      Int
-  likes       Int        @default(0)
-  dislikes    Int        @default(0)
-  replyToId   Int?
-  replyTo     Messages?  @relation("MessageReplies", fields: [replyToId], references: [messageId])
-  replies     Messages[] @relation("MessageReplies")
-  isValidated Boolean    @default(false)
-  rewarded    Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  messageId               Int        @id @default(autoincrement())
+  content                 String     
+  isEncrypted             Boolean    @default(false)
+  encryptedData           String?    
+  sender                  User       @relation(fields: [senderId], references: [id])
+  senderId                Int
+  room                    ChatRooms  @relation(fields: [roomId], references: [roomId])
+  roomId                  Int
+  likes                   Int        @default(0)
+  dislikes                Int        @default(0)
+  replyToId               Int?
+  replyTo                 Messages?  @relation("MessageReplies", fields: [replyToId], references: [messageId])
+  replies                 Messages[] @relation("MessageReplies")
+  isValidated             Boolean    @default(false)
+  rewarded                Boolean    @default(false)
+  createdAt               DateTime   @default(now())
+  updatedAt               DateTime   @updatedAt
 }
 
 model NGOHistory {

@@ -1,18 +1,33 @@
 import React, { useState, useEffect } from 'react';
+import logo from '../assets/logo_only.png';
+import logoText from '../assets/logo_text.png';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useWallet } from '../contexts/WalletContext';
+import WalletModal from './WalletModal';
 
-interface HeaderProps {
-  onConnectWallet?: () => void;
-  isWalletConnected?: boolean;
-  walletAddress?: string;
-}
+interface HeaderProps {}
 
-const Header: React.FC<HeaderProps> = ({ 
-  onConnectWallet, 
-  isWalletConnected = false, 
-  walletAddress 
-}) => {
+const Header: React.FC<HeaderProps> = () => {
+  const { 
+    isConnected, 
+    address, 
+    user,
+    openWalletModal, 
+    closeWalletModal, 
+    isWalletModalOpen, 
+    disconnectWallet 
+  } = useWallet();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleDisconnect = () => {
+    disconnectWallet();
+    navigate('/');
+  };
+
+  const isOnChatsPage = location.pathname === '/app/chats';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -28,9 +43,9 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const navItems = [
-    { name: 'Features', href: '#features' },
-    { name: 'Community', href: '#community' },
-    { name: 'About', href: '#about' },
+    { name: 'Features', href: '/#features' },
+    { name: 'Demo', href: '/demo' },
+    { name: 'About', href: '/about' },
   ];
 
   return (
@@ -44,37 +59,10 @@ const Header: React.FC<HeaderProps> = ({
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           
-          {/* Logo Section */}
-          <div className="flex items-center space-x-3 group cursor-pointer">
-            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-primary-600 rounded-xl flex items-center justify-center group-hover:bg-primary-700 transition-colors duration-200">
-              <div className="w-6 h-6 lg:w-7 lg:h-7 relative">
-                {/* Brain/Mind Icon */}
-                <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-white">
-                  <path 
-                    d="M12 2C8.5 2 6 4.5 6 7.5c0 1.5.5 3 1.5 4C6.5 12.5 6 14 6 15.5c0 3 2.5 5.5 6 5.5s6-2.5 6-5.5c0-1.5-.5-3-1.5-4 1-1 1.5-2.5 1.5-4C18 4.5 15.5 2 12 2z" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    fill="rgba(255, 255, 255, 0.1)"
-                  />
-                  <circle cx="9" cy="9" r="1.5" fill="currentColor" />
-                  <circle cx="15" cy="9" r="1.5" fill="currentColor" />
-                  <path d="M9 15c1 1 3 1 6 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-              </div>
-            </div>
-            
-            <div className="flex flex-col">
-              <div className="text-xl lg:text-2xl font-bold">
-                <span className="text-primary-600">Mind</span>
-                <span className="text-gray-900">Vault</span>
-              </div>
-              <span className="text-xs text-gray-500 -mt-1 hidden sm:block">
-                Mental Wellness Platform
-              </span>
-            </div>
-          </div>
-
-          {/* Desktop Navigation */}
+          <a className='flex items-center space-x-2' href="/">
+            <img src={logo} alt="MindVault Logo" className="h-12 lg:h-14" />
+            <img src={logoText} alt="MindVault Text Logo" className="h-6 lg:h-24 hidden sm:block" />
+          </a>
           <div className="hidden lg:flex items-center space-x-8">
             {navItems.map((item, index) => (
               <a
@@ -87,13 +75,11 @@ const Header: React.FC<HeaderProps> = ({
             ))}
           </div>
 
-          {/* Wallet Connection & Mobile Menu */}
           <div className="flex items-center space-x-4">
             
-            {/* Wallet Connection Button */}
-            {!isWalletConnected ? (
+            {!isConnected ? (
               <button
-                onClick={onConnectWallet}
+                onClick={openWalletModal}
                 className="btn btn-primary text-sm lg:text-base"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -103,16 +89,47 @@ const Header: React.FC<HeaderProps> = ({
               </button>
             ) : (
               <div className="flex items-center space-x-2">
-                <div className="card px-3 py-2 flex items-center space-x-2 bg-primary-50">
+                <div className="card px-3 py-2 flex items-center space-x-2 bg-primary-50 relative group">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-mono text-primary-700">
-                    {walletAddress && formatAddress(walletAddress)}
+                  <span className="text-sm text-primary-700">
+                    {user?.username || (address && formatAddress(address))}
                   </span>
+                  
+                  <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="p-3 border-b border-gray-100">
+                      {user && (
+                        <div className="mb-2">
+                          <div className="text-xs text-gray-500 mb-1">Username</div>
+                          <div className="text-sm font-semibold text-gray-900">{user.username}</div>
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-500 mb-1">Connected Wallet</div>
+                      <div className="text-sm font-mono text-gray-900">{address && formatAddress(address)}</div>
+                    </div>
+                    
+                    {!isOnChatsPage && (
+                      <button
+                        onClick={() => navigate('/app/chats')}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors flex items-center space-x-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span>Go to Chats</span>
+                      </button>
+                    )}
+                    
+                    <button
+                      onClick={handleDisconnect}
+                      className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      Disconnect Wallet
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="lg:hidden card p-2"
@@ -126,8 +143,6 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </nav>
-
-      {/* Mobile Menu */}
       <div className={`lg:hidden transition-all duration-300 overflow-hidden ${
         isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
       }`}>
@@ -143,21 +158,67 @@ const Header: React.FC<HeaderProps> = ({
             </a>
           ))}
           
-          {/* Mobile Wallet Info */}
-          {isWalletConnected && (
+          {!isConnected ? (
+            <button
+              onClick={openWalletModal}
+              className="w-full btn btn-primary text-sm mt-4"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Connect Wallet
+            </button>
+          ) : (
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="card p-3 bg-primary-50">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-xs text-primary-700">
-                    Connected: {walletAddress && formatAddress(walletAddress)}
-                  </span>
+              <div className="card p-3 bg-primary-50 mb-3">
+                <div className="space-y-2">
+                  {user && (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-xs text-primary-700 font-semibold">
+                        {user.username}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center space-x-2">
+                    <div className="w-1 h-1 bg-gray-400 rounded-full ml-0.5"></div>
+                    <span className="text-xs text-gray-500 font-mono">
+                      {address && formatAddress(address)}
+                    </span>
+                  </div>
                 </div>
               </div>
+              
+              {!isOnChatsPage && (
+                <button
+                  onClick={() => {
+                    navigate('/app/chats');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left p-2 text-sm text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-2 mb-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span>Go to Chats</span>
+                </button>
+              )}
+              
+              <button
+                onClick={handleDisconnect}
+                className="w-full text-left p-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                Disconnect Wallet
+              </button>
             </div>
           )}
         </div>
       </div>
+      
+      <WalletModal 
+        isOpen={isWalletModalOpen} 
+        onClose={closeWalletModal} 
+      />
     </header>
   );
 };

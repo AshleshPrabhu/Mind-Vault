@@ -1,61 +1,381 @@
-import React, { useState } from 'react';
-import { Wallet, History, Heart, TrendingUp, ArrowUpRight, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Wallet, History, Heart, TrendingUp, X, MessageCircle, ArrowLeft } from 'lucide-react';
+import { useWallet } from '../contexts/WalletContext';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
+import { parseEther, formatEther } from 'viem';
+import ashTokenImage from '../assets/ash_coin.png';
+import { API_BASE_URL } from '../config';
+
+const ASH_TOKEN_ABI = [
+  {
+    "inputs": [
+      { "name": "spender", "type": "address" },
+      { "name": "amount", "type": "uint256" }
+    ],
+    "name": "approve",
+    "outputs": [{ "name": "", "type": "bool" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "name": "owner", "type": "address" },
+      { "name": "spender", "type": "address" }
+    ],
+    "name": "allowance",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "name": "account", "type": "address" }
+    ],
+    "name": "balanceOf",
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+] as const;
+
+const FOUNDATION_ABI = [
+  {
+    "inputs": [
+      { "name": "token", "type": "address" },
+      { "name": "amount", "type": "uint256" }
+    ],
+    "name": "donateToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+] as const;
+
+const CONTRACT_ADDRESSES = {
+  ASH_TOKEN: "0x652Cdd1D2Aa3c7a2804a18816B90eD44Ec6AdC22",
+  FOUNDATIONS: {
+    "Manas Foundation": "0x846E9C974Db0bF19caf739768Aa6E4CcD8378adD",
+    "Minds Foundation": "0xFe5036504D3e3620346e19C643Be813477E34B68", 
+    "Mitram Foundation": "0x331a975530127C6a02f01D5F9eC8Fa3d31fc2352"
+  }
+} as const;
+
+interface DonationHistory {
+  id: number;
+  ngoName: string;
+  contractAddress: string;
+  amount: number;
+  date: Date;
+  status: string;
+  focus: string;
+  txHash?: string;
+}
+interface RankingData {
+  user: {
+    rank: number;
+    score: number;
+    tier: string;
+    tierColor: string;
+    percentile: number;
+    messageCount: number;
+    validatedMessages: number;
+    totalDonations: number;
+    tokenBalance: number;
+  };
+  leaderboard: Array<{
+    rank: number;
+    username: string;
+    profilePicture: string;
+    score: number;
+    tier: string;
+  }>;
+  totalUsers: number;
+}
 
 const Profile: React.FC = () => {
-  const [ashBalance] = useState(2847.63); // User's current ASH token balance
+  const navigate = useNavigate();
+  const { user } = useWallet();
+  const { address, isConnected } = useAccount();
+
+  const { data: onChainBalance } = useReadContract({
+    address: CONTRACT_ADDRESSES.ASH_TOKEN as `0x${string}`,
+    abi: ASH_TOKEN_ABI,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && isConnected,
+      refetchInterval: 10000,
+    },
+  });
+
+
+  const currentBalance = onChainBalance ? parseFloat(formatEther(onChainBalance as bigint)) : 0;
+  
+
+
+  
+
+  const { writeContract, data: txHash, error: writeError } = useWriteContract();
+  const { isSuccess: isTxSuccess } = useWaitForTransactionReceipt({
+    hash: txHash,
+  });
+  
+  const [donationHistory, setDonationHistory] = useState<DonationHistory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dataRefreshing, setDataRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+
+  const [rankingData, setRankingData] = useState<RankingData | null>(null);
+  const [rankingLoading, setRankingLoading] = useState(true);
+  
+
   const [selectedNGO, setSelectedNGO] = useState<any>(null);
   const [donationAmount, setDonationAmount] = useState('');
   const [showDonationDialog, setShowDonationDialog] = useState(false);
+  const [donationStep, setDonationStep] = useState<'input' | 'approving' | 'donating' | 'success' | 'error'>('input');
 
-  // Dummy donation history data
-  const donationHistory = [
-    {
-      id: 1,
-      ngoName: "Hope for Tomorrow Mental Health Foundation",
-      amount: 150.50,
-      date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-      status: "Completed",
-      txHash: "0xa1b2c3d4e5f6..."
-    },
-    {
-      id: 2,
-      ngoName: "Mindfulness Care Alliance",
-      amount: 75.25,
-      date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-      status: "Completed",
-      txHash: "0xb2c3d4e5f6g7..."
-    },
-    {
-      id: 3,
-      ngoName: "Mental Wellness Support Network",
-      amount: 200.00,
-      date: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000), // 8 days ago
-      status: "Completed",
-      txHash: "0xc3d4e5f6g7h8..."
-    },
-    {
-      id: 4,
-      ngoName: "Peaceful Minds Initiative",
-      amount: 88.90,
-      date: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000), // 12 days ago
-      status: "Completed",
-      txHash: "0xd4e5f6g7h8i9..."
-    },
-    {
-      id: 5,
-      ngoName: "Community Mental Health Center",
-      amount: 320.15,
-      date: new Date(Date.now() - 18 * 24 * 60 * 60 * 1000), // 18 days ago
-      status: "Completed",
-      txHash: "0xe5f6g7h8i9j0..."
+
+  const fetchDonationHistory = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/donations/history/${user.id}`, {
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+
+          setDonationHistory([]);
+          return;
+        }
+        if (response.status >= 500) {
+
+          setDonationHistory([]);
+          return;
+        }
+        throw new Error(`HTTP ${response.status}: Failed to fetch donation history`);
+      }
+      
+      const data = await response.json();
+      if (data.success) {
+        const donationsArray = data.data.donations || [];
+        const historyWithDates = donationsArray.map((item: any) => ({
+          ...item,
+          date: new Date(item.date)
+        }));
+        setDonationHistory(historyWithDates);
+      } else {
+
+        setDonationHistory([]);
+      }
+    } catch (err) {
+
+      
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+
+        setDonationHistory([]);
+        return;
+      }
+      
+      if (err instanceof Error && !err.message.includes('404')) {
+
+        setDonationHistory([]);
+      } else {
+        setDonationHistory([]);
+      }
     }
-  ];
+  };
 
-  // NGO data with the provided image URLs
+  const fetchRankingData = async () => {
+    if (!user?.walletAddress) return;
+    
+    try {
+      setRankingLoading(true);
+      const response = await fetch(`${API_BASE_URL}/user/rank/${user.walletAddress}`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setRankingData(data.data);
+        } else {
+
+        }
+      } else {
+
+      }
+    } catch (err) {
+    } finally {
+      setRankingLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (user?.id) {
+        setLoading(true);
+        await Promise.all([
+          fetchDonationHistory(),
+          fetchRankingData()
+        ]);
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [user?.id, user?.walletAddress]);
+
+  const handleModalDonation = async () => {
+    if (!selectedNGO || !donationAmount || parseFloat(donationAmount) <= 0) {
+      setError('Please select an NGO and enter a valid donation amount');
+      return;
+    }
+
+    if (parseFloat(donationAmount) > currentBalance) {
+      setError('Insufficient ASH tokens for this donation');
+      return;
+    }
+
+    setError('');
+    setDonationStep('approving');
+
+    try {
+      const foundationAddress = CONTRACT_ADDRESSES.FOUNDATIONS[selectedNGO.name as keyof typeof CONTRACT_ADDRESSES.FOUNDATIONS];
+      if (!foundationAddress) {
+        throw new Error('Foundation contract not found for selected NGO');
+      }
+
+      const amountInWei = parseEther(donationAmount.toString());
+      writeContract({
+        address: CONTRACT_ADDRESSES.ASH_TOKEN as `0x${string}`,
+        abi: ASH_TOKEN_ABI,
+        functionName: 'approve',
+        args: [foundationAddress, amountInWei],
+      });
+    } catch (error) {
+
+      setError('Token approval failed. Please try again or contact support');
+      setDonationStep('error');
+    }
+  };
+
+  const executeDonation = async () => {
+    if (!selectedNGO || !donationAmount) return;
+
+    setDonationStep('donating');
+    
+    try {
+      const foundationAddress = CONTRACT_ADDRESSES.FOUNDATIONS[selectedNGO.name as keyof typeof CONTRACT_ADDRESSES.FOUNDATIONS];
+      const amountInWei = parseEther(donationAmount.toString());
+      writeContract({
+        address: foundationAddress as `0x${string}`,
+        abi: FOUNDATION_ABI,
+        functionName: 'donateToken',
+        args: [CONTRACT_ADDRESSES.ASH_TOKEN as `0x${string}`, amountInWei],
+      });
+    } catch (error) {
+
+      setError('Donation contract error. Please try again or contact support');
+      setDonationStep('error');
+    }
+  };
+
+
+
+
+  const recordDonationInDB = async (ngo: any, amount: string, transactionHash: string) => {
+    try {
+      const ngoIdMapping: { [key: string]: number } = {
+        "Manas Foundation": 1,
+        "Minds Foundation": 2, 
+        "Mitram Foundation": 3
+      };
+      const ngoId = ngoIdMapping[ngo.name] || 1;
+      
+      const response = await fetch(`${API_BASE_URL}/donations/record`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          userId: user!.id,
+          ngoId: ngoId,
+          amount: parseFloat(amount),
+          txHash: transactionHash
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setDataRefreshing(true);
+        await fetchDonationHistory();
+        setDataRefreshing(false);
+        setDonationStep('success');
+        
+        setTimeout(() => {
+          setShowDonationDialog(false);
+          setSelectedNGO(null);
+          setDonationAmount('');
+          setDonationStep('input');
+        }, 2000);
+        
+      } else {
+        throw new Error(data.message || 'Failed to record donation');
+      }
+    } catch (err) {
+
+      setError(err instanceof Error ? err.message : 'Failed to record donation');
+      setDonationStep('error');
+      setDataRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (txHash && isTxSuccess && donationStep === 'approving') {
+      executeDonation();
+    } else if (txHash && isTxSuccess && donationStep === 'donating') {
+      if (selectedNGO && donationAmount) {
+        recordDonationInDB(selectedNGO, donationAmount, txHash);
+      }
+    } else if (writeError && donationStep !== 'input') {
+
+      let errorMessage = 'Donation failed';
+      
+      if (writeError.message.includes('User rejected') || writeError.message.includes('user rejected')) {
+        errorMessage = 'Transaction was cancelled by user';
+      } else if (writeError.message.includes('insufficient funds')) {
+        errorMessage = 'Insufficient funds for transaction';
+      } else if (writeError.message.includes('approve') && donationStep === 'approving') {
+        errorMessage = 'Token approval failed. Please try again or contact support';
+      } else if (writeError.message.includes('donateToken')) {
+        errorMessage = 'Donation contract error. Please try again or contact support';
+      } else {
+        errorMessage = 'Transaction failed. Please try again';
+      }
+      
+      setError(errorMessage);
+      setDonationStep('error');
+      if (writeError.message.includes('User rejected') || writeError.message.includes('user rejected')) {
+        setTimeout(() => {
+          setDonationStep('input');
+          setError(null);
+        }, 3000);
+      }
+    }
+  }, [txHash, isTxSuccess, writeError, donationStep, selectedNGO, donationAmount]);
+
+  const displayDonationHistory = donationHistory.length > 0 ? donationHistory : [];
+
   const ngoData = [
     {
       id: 1,
-      name: "Hope for Tomorrow Foundation",
+      name: "Manas Foundation",
       description: "Providing comprehensive mental health support and counseling services to underserved communities worldwide.",
       impact: "50,000+ lives impacted",
       image: "https://skchildrenfoundation.org/wp-content/uploads/2022/10/skcf5.png",
@@ -64,7 +384,7 @@ const Profile: React.FC = () => {
     },
     {
       id: 2,
-      name: "Mindfulness Care Alliance", 
+      name: "Minds Foundation", 
       description: "Dedicated to promoting mental wellness through mindfulness practices, therapy, and community support programs.",
       impact: "25,000+ people served",
       image: "https://globalindiannetwork.com/wp-content/uploads/mental-health-ngos-in-india.webp",
@@ -73,7 +393,7 @@ const Profile: React.FC = () => {
     },
     {
       id: 3,
-      name: "Mental Wellness Network",
+      name: "Mitram Foundation",
       description: "Building bridges to mental health resources and breaking stigma through education and awareness campaigns.",
       impact: "100,000+ awareness reached",
       image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTu9vEE5UZTj_Mh56ytaqBRAL19dKdLuKEuqA&s",
@@ -82,7 +402,6 @@ const Profile: React.FC = () => {
     }
   ];
 
-  // Format date for display
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', { 
       year: 'numeric', 
@@ -91,38 +410,111 @@ const Profile: React.FC = () => {
     });
   };
 
-  // Format number with commas
   const formatNumber = (num: number) => {
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  // Calculate totals from donation history
-  const totalDonated = donationHistory.reduce((sum, donation) => sum + donation.amount, 0);
-  const totalDonations = donationHistory.length;
+  const totalDonated = displayDonationHistory.reduce((sum, donation) => sum + donation.amount, 0);
+  const totalDonations = displayDonationHistory.length;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading your profile...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <X className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <p className="text-red-600 mb-2">Failed to load profile</p>
+              <p className="text-gray-600">{error}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Page Header */}
+
         <div className="mb-8">
-          <div className="flex items-center space-x-4 mb-2">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full flex items-center justify-center shadow-lg">
-              <span className="text-white text-xl font-bold">MV</span>
+
+          <div className="mb-4">
+            <button
+              onClick={() => navigate('/app/chats')}
+              className="
+                group flex items-center space-x-2 px-3 py-2 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-200
+                transition-all duration-200 text-gray-700 hover:text-primary-700
+              "
+              aria-label="Go to chats"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" />
+              <MessageCircle className="w-4 h-4" />
+              <span className="text-sm font-medium hidden sm:inline">Chats</span>
+            </button>
+          </div>
+          
+
+          <div className="flex items-center space-x-6">
+
+            <div className="flex-shrink-0">
+              <img 
+                src={user?.profilePicture || "https://avatar.iran.liara.run/public"} 
+                alt={user?.username || "User"}
+                className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-lg"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = "https://avatar.iran.liara.run/public";
+                }}
+              />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-              <p className="text-gray-600">Manage your MindVault account and contributions</p>
+            
+
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <h1 className="text-3xl font-bold text-gradient-primary">
+                  👤 My Profile
+                </h1>
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    {user?.username || "Anonymous User"}
+                  </h2>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                    {user?.role === 'VALIDATOR' ? 'Validator' : 'Member'}
+                  </span>
+                </div>
+                <p className="text-gray-600">Manage your MindVault account and contributions</p>
+                {address && (
+                  <p className="text-sm text-gray-500 font-mono">
+                    {address.slice(0, 6)}...{address.slice(-4)}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="space-y-8">
           
-          {/* Left Column - Balance & History */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="space-y-8">
             
-            {/* 1. Balance Tokens Section */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4">
                 <div className="flex items-center space-x-3">
@@ -140,16 +532,13 @@ const Profile: React.FC = () => {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <div className="text-4xl font-bold text-gray-900 mb-2">
-                      {formatNumber(ashBalance)} <span className="text-2xl text-primary-600">ASH</span>
+                      {formatNumber(currentBalance)} <span className="text-2xl text-primary-600">ASH</span>
                     </div>
-                    <div className="flex items-center space-x-2 text-green-600">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="text-sm font-medium">+5.2% from last month</span>
-                    </div>
+
                   </div>
-                  <div className="w-24 h-24 bg-gradient-to-br from-primary-600/10 to-primary-600/5 rounded-full flex items-center justify-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full flex items-center justify-center">
-                      <span className="text-white font-bold text-lg">ASH</span>
+                  <div className="w-24 h-24 bg-gradient-to-br from-primary-600/10 to-primary-600/5 rounded-full flex items-center justify-center mr-4">
+                    <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-full flex items-center justify-center">
+                      <img src={ashTokenImage} alt="ASH Coin" className='w-24 h-24' />
                     </div>
                   </div>
                 </div>
@@ -167,7 +556,121 @@ const Profile: React.FC = () => {
               </div>
             </div>
 
-            {/* 2. NGO Donation History Section */}
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Community Ranking</h2>
+                    <p className="text-primary-200 text-sm">Your position in the MindVault community</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                {rankingLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                  </div>
+                ) : rankingData ? (
+                  <div className="space-y-6">
+
+                    <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border-2 border-dashed border-gray-300">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-4">
+                          <div 
+                            className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl"
+                            style={{ backgroundColor: rankingData.user.tierColor }}
+                          >
+                            #{rankingData.user.rank}
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-gray-900">
+                              {rankingData.user.tier} Rank
+                            </h3>
+                            <p className="text-gray-600">
+                              Top {rankingData.user.percentile}% of {rankingData.totalUsers} users
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-gray-900">
+                            {rankingData.user.score.toLocaleString()}
+                          </div>
+                          <div className="text-sm text-gray-600">Community Score</div>
+                        </div>
+                      </div>
+                      
+
+                      <div className="grid grid-cols-3 gap-4">
+                        <div className="bg-white rounded-lg p-3 text-center">
+                          <div className="text-lg font-bold text-primary-600">{rankingData.user.messageCount}</div>
+                          <div className="text-xs text-gray-600">Messages</div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 text-center">
+                          <div className="text-lg font-bold text-green-600">{rankingData.user.validatedMessages}</div>
+                          <div className="text-xs text-gray-600">Validated</div>
+                        </div>
+                        <div className="bg-white rounded-lg p-3 text-center">
+                          <div className="text-lg font-bold text-primary-600">{rankingData.user.totalDonations.toLocaleString()}</div>
+                          <div className="text-xs text-gray-600">Donated</div>
+                        </div>
+                      </div>
+                    </div>
+
+
+                    <div>
+                      <h4 className="text-lg font-bold text-gray-900 mb-3">Top Community Members</h4>
+                      <div className="space-y-2">
+                        {rankingData.leaderboard.slice(0, 5).map((leader, index) => (
+                          <div 
+                            key={leader.rank} 
+                            className={`flex items-center justify-between p-3 rounded-lg ${
+                              leader.rank === rankingData.user.rank ? 'bg-primary-50 border border-primary-200' : 'bg-gray-50'
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold ${
+                                index === 0 ? 'bg-yellow-500' : 
+                                index === 1 ? 'bg-gray-400' : 
+                                index === 2 ? 'bg-primary-600' : 'bg-gray-500'
+                              }`}>
+                                {leader.rank}
+                              </div>
+                              <img 
+                                src={leader.profilePicture} 
+                                alt={leader.username}
+                                className="w-8 h-8 rounded-full object-cover"
+                              />
+                              <span className="font-medium text-gray-900">
+                                {leader.username}
+                                {leader.rank === rankingData.user.rank && (
+                                  <span className="text-primary-600 ml-2">(You)</span>
+                                )}
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-gray-900">{leader.score.toLocaleString()}</div>
+                              <div className="text-xs text-gray-600">{leader.tier}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p>Unable to load ranking data</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
@@ -202,13 +705,11 @@ const Profile: React.FC = () => {
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Transaction
-                      </th>
+
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {donationHistory.map((donation) => (
+                    {displayDonationHistory.map((donation) => (
                       <tr key={donation.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
                           <div className="text-sm font-medium text-gray-900">{donation.ngoName}</div>
@@ -229,15 +730,7 @@ const Profile: React.FC = () => {
                             {donation.status}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
-                          <button 
-                            className="text-sm text-primary-600 hover:text-[#16625a] font-medium flex items-center space-x-1"
-                            onClick={() => window.open(`https://etherscan.io/tx/${donation.txHash}`, '_blank')}
-                          >
-                            <span>{donation.txHash}</span>
-                            <ArrowUpRight className="w-3 h-3" />
-                          </button>
-                        </td>
+
                       </tr>
                     ))}
                   </tbody>
@@ -245,42 +738,9 @@ const Profile: React.FC = () => {
               </div>
             </div>
           </div>
-          
-          {/* Right Column - Quick Stats */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center space-x-3 mb-4">
-                <Heart className="w-6 h-6 text-red-500" />
-                <h3 className="text-lg font-semibold text-gray-900">Impact Summary</h3>
-              </div>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Lives Impacted</span>
-                  <span className="font-bold text-gray-900">1,247</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Support Hours</span>
-                  <span className="font-bold text-gray-900">89.4</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-600">Community Rank</span>
-                  <span className="font-bold text-primary-600">#23</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl p-6 text-white">
-              <h3 className="text-lg font-semibold mb-2">Mental Health Matters</h3>
-              <p className="text-white/80 text-sm mb-4">Your contributions are making a real difference in people's lives.</p>
-              <button className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2">
-                <span>View Impact Report</span>
-                <ArrowUpRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
         </div>
 
-        {/* 3. Donate to NGO Section */}
+
         <div className="mt-12">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Support Mental Health NGOs</h2>
@@ -290,7 +750,7 @@ const Profile: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {ngoData.map((ngo) => (
               <div key={ngo.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
-                {/* NGO Image */}
+
                 <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
                   <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg overflow-hidden bg-white">
                     <img 
@@ -313,7 +773,7 @@ const Profile: React.FC = () => {
                   </div>
                 </div>
                 
-                {/* NGO Content */}
+
                 <div className="p-6">
                   <div className="mb-4">
                     <h3 className="text-xl font-bold text-gray-900 mb-2">{ngo.name}</h3>
@@ -326,21 +786,10 @@ const Profile: React.FC = () => {
                     <p className="text-gray-600 text-sm leading-relaxed">{ngo.description}</p>
                   </div>
                   
-                  {/* Impact Stats */}
-                  <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                      <div>
-                        <div className="text-lg font-bold text-gray-900">98%</div>
-                        <div className="text-xs text-gray-600">Transparency</div>
-                      </div>
-                      <div>
-                        <div className="text-lg font-bold text-gray-900">4.5k</div>
-                        <div className="text-xs text-gray-600">Donors</div>
-                      </div>
-                    </div>
-                  </div>
+
+
                   
-                  {/* Donate Button */}
+
                   <button
                     onClick={() => {
                       setSelectedNGO(ngo);
@@ -358,11 +807,11 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
-      {/* Donation Dialog Modal */}
+
       {showDonationDialog && selectedNGO && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
+
             <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div className="flex items-center space-x-3">
                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-gray-200">
@@ -398,14 +847,14 @@ const Profile: React.FC = () => {
               </button>
             </div>
 
-            {/* Modal Content */}
+
             <div className="p-6">
-              {/* Available Balance */}
+
               <div className="bg-gradient-to-r from-primary-600/10 to-primary-600/5 rounded-xl p-4 mb-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Available ASH Tokens</p>
-                    <p className="text-2xl font-bold text-primary-600">{formatNumber(ashBalance)}</p>
+                    <p className="text-2xl font-bold text-primary-600">{formatNumber(currentBalance)}</p>
                   </div>
                   <div className="w-12 h-12 bg-gradient-to-br from-primary-600 to-primary-700 rounded-full flex items-center justify-center">
                     <span className="text-white font-bold text-sm">ASH</span>
@@ -413,7 +862,7 @@ const Profile: React.FC = () => {
                 </div>
               </div>
 
-              {/* Donation Amount Input */}
+
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Donation Amount (ASH Tokens)
@@ -425,7 +874,7 @@ const Profile: React.FC = () => {
                     onChange={(e) => setDonationAmount(e.target.value)}
                     placeholder="Enter amount to donate"
                     min="0"
-                    max={ashBalance}
+                    max={currentBalance}
                     step="0.01"
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-600/20 focus:border-primary-600 outline-none transition-colors"
                   />
@@ -433,12 +882,68 @@ const Profile: React.FC = () => {
                     ASH
                   </div>
                 </div>
-                {donationAmount && parseFloat(donationAmount) > ashBalance && (
+                {donationAmount && parseFloat(donationAmount) > currentBalance && (
                   <p className="text-red-500 text-sm mt-1">Insufficient balance</p>
                 )}
               </div>
 
-              {/* Quick Amount Buttons */}
+
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <div className="flex items-center space-x-2 text-red-700">
+                    <X className="w-5 h-5" />
+                    <p className="text-sm font-medium">{error}</p>
+                  </div>
+                </div>
+              )}
+
+
+              {donationStep !== 'input' && (
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-center space-x-2 text-blue-700">
+                    {donationStep === 'donating' && (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-700"></div>
+                        <p className="text-sm font-medium">Processing donation to {selectedNGO?.name}...</p>
+                      </>
+                    )}
+                    {donationStep === 'success' && (
+                      <>
+                        <Heart className="w-5 h-5 text-green-600" />
+                        <div>
+                          <p className="text-sm font-medium text-green-700">Donation successful! Thank you for your contribution.</p>
+                          {dataRefreshing && (
+                            <p className="text-xs text-green-600 mt-1">Updating your balance and history...</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+                    {donationStep === 'error' && (
+                      <div>
+                        <div className="flex items-center space-x-2 text-red-700">
+                          <X className="w-5 h-5 text-red-600" />
+                          <p className="text-sm font-medium text-red-700">Donation failed. Please try again.</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setError(null);
+                            setDonationStep('input');
+                            setDataRefreshing(false);
+                            if (writeError) {
+
+                            }
+                          }}
+                          className="mt-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+
               <div className="mb-6">
                 <p className="text-sm font-medium text-gray-700 mb-3">Quick Select</p>
                 <div className="grid grid-cols-4 gap-2">
@@ -454,7 +959,7 @@ const Profile: React.FC = () => {
                 </div>
               </div>
 
-              {/* Impact Preview */}
+
               {donationAmount && parseFloat(donationAmount) > 0 && (
                 <div className="bg-green-50 rounded-xl p-4 mb-6">
                   <div className="flex items-center space-x-2 mb-2">
@@ -468,7 +973,7 @@ const Profile: React.FC = () => {
                 </div>
               )}
 
-              {/* Action Buttons */}
+
               <div className="flex space-x-3">
                 <button
                   onClick={() => {
@@ -482,18 +987,55 @@ const Profile: React.FC = () => {
                 </button>
                 <button
                   onClick={() => {
-                    if (donationAmount && parseFloat(donationAmount) > 0 && parseFloat(donationAmount) <= ashBalance) {
-                      // Here you would implement the actual donation logic
-                      alert(`Successfully donated ${donationAmount} ASH tokens to ${selectedNGO.name}!`);
-                      setShowDonationDialog(false);
-                      setSelectedNGO(null);
-                      setDonationAmount('');
+                    if (donationAmount && parseFloat(donationAmount) > 0 && parseFloat(donationAmount) <= currentBalance) {
+                      handleModalDonation();
                     }
                   }}
-                  disabled={!donationAmount || parseFloat(donationAmount) <= 0 || parseFloat(donationAmount) > ashBalance}
-                  className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-xl transition-all duration-200"
+                  disabled={
+                    !donationAmount || 
+                    parseFloat(donationAmount) <= 0 || 
+                    parseFloat(donationAmount) > currentBalance ||
+                    !isConnected ||
+                    donationStep !== 'input'
+                  }
+                  className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2"
                 >
-                  Proceed to Donate
+                  {donationStep === 'input' && !isConnected && (
+                    <>
+                      <Wallet className="w-4 h-4" />
+                      <span>Connect Wallet to Donate</span>
+                    </>
+                  )}
+                  {donationStep === 'input' && isConnected && (
+                    <>
+                      <Heart className="w-4 h-4" />
+                      <span>Proceed to Donate</span>
+                    </>
+                  )}
+                  {donationStep === 'approving' && (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Approving Tokens...</span>
+                    </>
+                  )}
+                  {donationStep === 'donating' && (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Processing Donation...</span>
+                    </>
+                  )}
+                  {donationStep === 'success' && (
+                    <>
+                      <Heart className="w-4 h-4 text-green-400" />
+                      <span>Donation Successful!</span>
+                    </>
+                  )}
+                  {donationStep === 'error' && (
+                    <>
+                      <X className="w-4 h-4 text-red-400" />
+                      <span>Donation Failed</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>

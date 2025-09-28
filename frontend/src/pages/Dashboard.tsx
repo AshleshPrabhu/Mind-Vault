@@ -5,7 +5,6 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto">
         
-        {/* Welcome Section */}
         <div className="glass-card-hero mb-8">
           <div className="text-center">
             <h1 className="text-4xl font-bold text-gradient-primary mb-4">
@@ -17,7 +16,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="glass-card text-center hover:glow-cyan transition-all duration-300">
             <div className="text-3xl font-bold text-primary-400 mb-2">24</div>
@@ -37,10 +35,8 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Recent Activity */}
           <div className="lg:col-span-2">
             <div className="glass-card">
               <h2 className="text-2xl font-bold text-white mb-6">Recent Activity</h2>
@@ -62,7 +58,6 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Actions */}
           <div className="space-y-6">
             <div className="glass-card">
               <h3 className="text-xl font-bold text-white mb-4">Quick Actions</h3>
@@ -88,7 +83,6 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Wellness Goals */}
             <div className="glass-card">
               <h3 className="text-xl font-bold text-white mb-4">Today's Goals</h3>
               <div className="space-y-3">

@@ -3,8 +3,8 @@ import { format, isToday, isYesterday, startOfDay, differenceInDays } from 'date
 import { Search, Clock, MessageCircle, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface ChatMessage {
-  id: string;
-  senderId: string;
+  id: number;
+  senderId: number;
   senderName: string;
   content: string;
   timestamp: Date;
@@ -38,12 +38,10 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set(['today', 'yesterday']));
 
-  // Filter messages to only show user's messages
   const userMessages = useMemo(() => {
     return messages.filter(msg => msg.isMe);
   }, [messages]);
 
-  // Group messages by date
   const groupedMessages = useMemo(() => {
     const filtered = searchTerm.length === 0 
       ? userMessages 
@@ -63,7 +61,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
       groups[dateKey].push(message);
     });
 
-    // Convert to array and sort by date (newest first)
     return Object.entries(groups)
       .map(([dateKey, msgs]): GroupedMessage => {
         const date = new Date(dateKey);
@@ -101,9 +98,9 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
     setExpandedDays(newExpanded);
   };
 
-  const handleMessageClick = (messageId: string) => {
+  const handleMessageClick = (messageId: number) => {
     if (onMessageClick) {
-      onMessageClick(messageId);
+      onMessageClick(messageId.toString());
       onClose();
     }
   };
@@ -119,7 +116,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
 
   return (
     <>
-      {/* Overlay - lighter for better UX */}
       <div 
         className={`fixed inset-0 bg-black/10 backdrop-blur-[1px] z-40 transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
@@ -127,14 +123,12 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
         onClick={onClose}
       />
       
-      {/* Compact Right-Side Panel */}
       <div className={`
         fixed right-0 top-0 h-full w-96 bg-white border-l border-gray-200 
         transform transition-all duration-300 ease-in-out z-50
         ${isOpen ? 'translate-x-0' : 'translate-x-full'}
         flex flex-col shadow-xl
       `}>
-        {/* Compact Header */}
         <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-[#197067]/5 to-[#197067]/10">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
@@ -156,7 +150,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
             </button>
           </div>
           
-          {/* Compact Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -179,7 +172,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
           )}
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto">
           {groupedMessages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-500 p-6">
@@ -203,7 +195,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
                 
                 return (
                   <div key={group.date} className="mb-4">
-                    {/* Enhanced Date Header */}
                     <button
                       onClick={() => toggleDayExpansion(group.date)}
                       className="w-full flex items-center justify-between p-3 hover:bg-white/50 rounded-xl transition-colors group border border-gray-100"
@@ -229,7 +220,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
                       </div>
                     </button>
 
-                    {/* Messages - Compact Design */}
                     <div className={`ml-4 space-y-2 overflow-hidden transition-all duration-300 ${
                       isExpanded ? 'max-h-none opacity-100 mt-2' : 'max-h-0 opacity-0'
                     }`}>
@@ -286,7 +276,6 @@ const ChatHistory: React.FC<ChatHistoryProps> = ({
           )}
         </div>
 
-        {/* Enhanced Footer */}
         <div className="p-4 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
           <div className="flex items-center justify-center space-x-2">
             <div className="w-2 h-2 bg-[#197067] rounded-full animate-pulse"></div>
