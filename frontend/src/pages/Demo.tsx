@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Bot, User, ArrowRight, Star } from 'lucide-react';
-import chatRoomSS from "../assets/screenshot 2025-09-28 092631.png"
-import aiChatSS from "../assets/Screenshot 2025-09-28 093026.png"
-import profileSS from "../assets/Screenshot 2025-09-28 092802.png"
+import chatRoomSS from "../assets/screenshot001.png"
+import aiChatSS from "../assets/Screenshot002.png"
+import profileSS from "../assets/Screenshot003.png"
 
 const Demo: React.FC = () => {
   const navigate = useNavigate();
