@@ -94,7 +94,7 @@ class TokenMintingService {
       const gasPrice = await this.provider.getGasPrice();
       
       const tx = await this.ashTokenContract.mint(recipientAddress, amount, {
-        gasPrice: gasPrice.mul(110).div(100) 
+        gasPrice: gasPrice.mul(110).div(100)
       });
       
       console.log(' Transaction sent:', tx.hash);
