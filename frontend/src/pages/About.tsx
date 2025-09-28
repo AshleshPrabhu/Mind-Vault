@@ -1,5 +1,8 @@
 import React from 'react';
-import { Linkedin, Heart, Code, Users } from 'lucide-react';
+import vidith from '../assets/vidith_linkedin.jpeg';
+import vamshi from '../assets/vvb_linkedin.jpeg';
+import ashlesh from '../assets/ashlesh_linkedin.jpeg';
+import { Linkedin } from 'lucide-react';
 
 const About: React.FC = () => {
   const teamMembers = [
@@ -9,6 +12,7 @@ const About: React.FC = () => {
       description: "Passionate about building innovative mental health solutions with cutting-edge technology. Specializes in AI integration and user experience design.",
       linkedin: "https://www.linkedin.com/in/vidith-venkatesha-murthy?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
       avatar: "V",
+      profileImage: vidith,
       gradient: "from-primary-500 to-primary-600"
     },
     {
@@ -17,6 +21,7 @@ const About: React.FC = () => {
       description: "Dedicated to creating intuitive and accessible user interfaces. Combines design thinking with technical expertise to enhance user experiences.",
       linkedin: "https://www.linkedin.com/in/vamshikrishna-v-bidari-154080329?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app",
       avatar: "VK",
+      profileImage: vamshi,
       gradient: "from-primary-600 to-primary-700"
     },
     {
@@ -25,31 +30,13 @@ const About: React.FC = () => {
       description: "Interested in decentralized technologies and smart contract development. Focused on creating secure, anonymous platforms for mental health support.",
       linkedin: "https://www.linkedin.com/in/ashlesh-prabhu-bb457b312/",
       avatar: "A",
+      profileImage: ashlesh,
       gradient: "from-primary-700 to-primary-800"
-    }
-  ];
-
-  const values = [
-    {
-      icon: <Heart className="w-6 h-6" />,
-      title: "Mental Health First",
-      description: "We prioritize user wellbeing and create safe spaces for healing and growth."
-    },
-    {
-      icon: <Users className="w-6 h-6" />,
-      title: "Community Driven",
-      description: "Building supportive networks where people can connect and help each other."
-    },
-    {
-      icon: <Code className="w-6 h-6" />,
-      title: "Innovation & Privacy",
-      description: "Leveraging Web3 and AI technologies to ensure complete anonymity and security."
     }
   ];
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Hero Section */}
       <section className="relative py-20 lg:py-32 bg-gradient-to-br from-primary-50 via-white to-primary-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -63,7 +50,6 @@ const About: React.FC = () => {
         </div>
       </section>
 
-      {/* Mission Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -104,8 +90,6 @@ const About: React.FC = () => {
           </div>
         </div>
       </section>
-
-      {/* Team Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -121,17 +105,26 @@ const About: React.FC = () => {
             {teamMembers.map((member, index) => (
               <div key={index}>
                 <div className="card-lg text-center">
-                  {/* Avatar */}
-                  <div className={`w-24 h-24 bg-gradient-to-r ${member.gradient} rounded-full flex items-center justify-center mx-auto mb-6`}>
-                    <span className="text-3xl font-bold text-white">{member.avatar}</span>
+                  <div className="w-24 h-24 rounded-full overflow-hidden mx-auto mb-6 border-4 border-white shadow-lg">
+                    <img 
+                      src={member.profileImage} 
+                      alt={member.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallbackDiv = document.createElement('div');
+                        fallbackDiv.className = `w-full h-full bg-gradient-to-r ${member.gradient} flex items-center justify-center`;
+                        fallbackDiv.innerHTML = `<span class="text-3xl font-bold text-white">${member.avatar}</span>`;
+                        target.parentElement?.appendChild(fallbackDiv);
+                      }}
+                    />
                   </div>
 
-                  {/* Member Info */}
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{member.name}</h3>
                   <p className="text-primary-600 font-medium mb-4">{member.role}</p>
                   <p className="text-gray-600 text-sm leading-relaxed mb-6">{member.description}</p>
 
-                  {/* Social Links */}
                   <div className="flex justify-center space-x-4">
                     <a 
                       href={member.linkedin}

@@ -38,13 +38,9 @@ export class LitProtocolError extends Error implements EncryptionError {
   }
 }
 
-/**
- * Handle encryption-related errors with user-friendly messages and recovery options
- */
 export const handleEncryptionError = (error: Error | EncryptionError, context: string = '') => {
   console.error(`Encryption Error${context ? ` in ${context}` : ''}:`, error);
 
-  // Check if it's our custom encryption error
   const isLitError = error instanceof LitProtocolError;
   const errorType = isLitError ? error.type : EncryptionErrorType.NETWORK_ERROR;
   const recoverable = isLitError ? error.recoverable : true;
@@ -65,7 +61,7 @@ export const handleEncryptionError = (error: Error | EncryptionError, context: s
         description: 'Unable to encrypt your message. Please try sending again.',
         action: {
           label: 'Try Again',
-          onClick: () => {} // This will be handled by the caller
+          onClick: () => {}
         }
       });
       break;
@@ -90,7 +86,6 @@ export const handleEncryptionError = (error: Error | EncryptionError, context: s
         action: {
           label: 'Connect Wallet',
           onClick: () => {
-            // This will trigger wallet connection
             window.dispatchEvent(new CustomEvent('connect-wallet'));
           }
         }
@@ -103,7 +98,6 @@ export const handleEncryptionError = (error: Error | EncryptionError, context: s
         action: {
           label: 'Reconnect',
           onClick: () => {
-            // Clear cached sessions and reconnect
             window.dispatchEvent(new CustomEvent('reconnect-lit'));
           }
         }
@@ -116,7 +110,7 @@ export const handleEncryptionError = (error: Error | EncryptionError, context: s
         description: error.message || 'An unexpected error occurred. Please try again.',
         action: recoverable ? {
           label: 'Retry',
-          onClick: () => {} // This will be handled by the caller
+          onClick: () => {}
         } : undefined
       });
       break;
@@ -128,10 +122,6 @@ export const handleEncryptionError = (error: Error | EncryptionError, context: s
     message: error.message
   };
 };
-
-/**
- * Show success messages for encryption operations
- */
 export const showEncryptionSuccess = (operation: 'encrypt' | 'decrypt' | 'connect') => {
   switch (operation) {
     case 'encrypt':
@@ -141,7 +131,6 @@ export const showEncryptionSuccess = (operation: 'encrypt' | 'decrypt' | 'connec
       });
       break;
     case 'decrypt':
-      // Usually don't show success for decryption as it should be seamless
       break;
     case 'connect':
       toast.success('Encryption Ready', {
@@ -152,9 +141,6 @@ export const showEncryptionSuccess = (operation: 'encrypt' | 'decrypt' | 'connec
   }
 };
 
-/**
- * Show loading states for encryption operations
- */
 export const showEncryptionLoading = (operation: 'encrypt' | 'decrypt' | 'connect') => {
   switch (operation) {
     case 'encrypt':
@@ -172,16 +158,9 @@ export const showEncryptionLoading = (operation: 'encrypt' | 'decrypt' | 'connec
   }
 };
 
-/**
- * Dismiss a specific toast
- */
 export const dismissToast = (toastId: string | number) => {
   toast.dismiss(toastId);
 };
-
-/**
- * Create a standardized Lit Protocol error
- */
 export const createLitError = (
   type: EncryptionErrorType,
   message: string,

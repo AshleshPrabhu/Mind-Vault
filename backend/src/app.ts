@@ -5,6 +5,7 @@ import cors from 'cors';
 import userRoutes from './routes/user.routes.js';
 import messageRoutes from './routes/message.routes.js';
 import chatroomRoutes from './routes/chatroom.routes.js';
+import donationRoutes from './routes/donation.routes.js';
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use(cookieParser());
 app.use('/api/user', userRoutes);
 app.use('/api/message', messageRoutes);
 app.use('/api/chatroom', chatroomRoutes);
+app.use('/api/donations', donationRoutes);
 
 
 export { app };

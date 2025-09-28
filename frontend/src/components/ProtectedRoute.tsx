@@ -14,22 +14,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { isConnected, user, isLoading, isInitializing, isWalletModalOpen, openWalletModal, closeWalletModal } = useWallet();
 
-  // Auto-open wallet modal when accessing protected route without connection
-  // Wait for initialization to complete before showing modal
   useEffect(() => {
     if (!isInitializing && !isConnected && !user && !isWalletModalOpen && !isLoading) {
-      // Add a small delay to avoid opening modal too quickly
+  
       const timer = setTimeout(() => {
         if (!isConnected && !user && !isWalletModalOpen) {
           openWalletModal();
         }
-      }, 1000); // 1 second delay
+      }, 1000);
       
       return () => clearTimeout(timer);
     }
   }, [isInitializing, isConnected, user, isWalletModalOpen, isLoading, openWalletModal]);
 
-  // Show loading state during initialization, user authentication, or wallet reconnection
   if (isInitializing || isLoading || (user && !isConnected)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
@@ -50,7 +47,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // Allow access if user exists (from localStorage), even if wallet isn't connected yet
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
@@ -77,7 +73,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           </div>
         </div>
         
-        {/* Wallet Modal */}
         <WalletModal 
           isOpen={isWalletModalOpen} 
           onClose={closeWalletModal} 

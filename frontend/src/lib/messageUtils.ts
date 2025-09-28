@@ -28,9 +28,6 @@ export interface DecryptedMessage {
   updatedAt: string;
 }
 
-/**
- * Decrypt a message if it's encrypted
- */
 export const decryptMessage = async (
   message: any, 
   walletAddress: string
@@ -41,7 +38,6 @@ export const decryptMessage = async (
     decryptionError: undefined
   };
 
-  // If message is not encrypted, return as-is
   if (!message.isEncrypted || !message.encryptedData) {
     return {
       ...decryptedMessage,
@@ -50,12 +46,10 @@ export const decryptMessage = async (
   }
 
   try {
-    // Parse encrypted data
     const encryptedData: EncryptedData = typeof message.encryptedData === 'string' 
       ? JSON.parse(message.encryptedData) 
       : message.encryptedData;
 
-    // Decrypt the message content
     const decryptedContent = await litProtocolService.decryptMessage(
       encryptedData,
       walletAddress
@@ -79,9 +73,6 @@ export const decryptMessage = async (
   }
 };
 
-/**
- * Decrypt multiple messages
- */
 export const decryptMessages = async (
   messages: any[], 
   walletAddress: string
@@ -94,7 +85,6 @@ export const decryptMessages = async (
     return await Promise.all(decryptPromises);
   } catch (error) {
     console.error("Failed to decrypt some messages:", error);
-    // Return partially decrypted results
     return Promise.allSettled(decryptPromises).then(results => 
       results.map((result, index) => 
         result.status === 'fulfilled' 
@@ -110,9 +100,6 @@ export const decryptMessages = async (
   }
 };
 
-/**
- * Check if user can decrypt messages in a room
- */
 export const canDecryptInRoom = async (
   roomId: number, 
   walletAddress: string
@@ -125,9 +112,6 @@ export const canDecryptInRoom = async (
   }
 };
 
-/**
- * Format message for display, handling both encrypted and unencrypted
- */
 export const formatMessageForDisplay = (message: DecryptedMessage): string => {
   if (!message.isEncrypted) {
     return message.content;
@@ -144,17 +128,14 @@ export const formatMessageForDisplay = (message: DecryptedMessage): string => {
   return "🔒 Decrypting...";
 };
 
-/**
- * Get message status icon
- */
 export const getMessageStatusIcon = (message: DecryptedMessage): string => {
   if (!message.isEncrypted) {
-    return ""; // No icon for regular messages
+    return ""; 
   }
 
   if (message.decrypted) {
-    return "🔓"; // Unlocked
+    return "🔓"; 
   }
 
-  return "🔒"; // Locked
+  return "🔒";
 };

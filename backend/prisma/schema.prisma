@@ -45,9 +45,9 @@ model ChatRooms {
 
 model Messages {
   messageId               Int        @id @default(autoincrement())
-  content                 String     // This will store encrypted content
+  content                 String     
   isEncrypted             Boolean    @default(false)
-  encryptedData           String?    // JSON string storing ciphertext, dataToEncryptHash, accessControlConditions
+  encryptedData           String?    
   sender                  User       @relation(fields: [senderId], references: [id])
   senderId                Int
   room                    ChatRooms  @relation(fields: [roomId], references: [roomId])

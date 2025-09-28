@@ -71,17 +71,17 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="relative mt-20 border-t border-primary-500/10">
-      {/* Background Effects */}
+
       <div className="absolute inset-0 bg-gradient-to-t from-void-950 via-void-950/80 to-transparent"></div>
       <div className="absolute inset-0 bg-gradient-to-r from-primary-500/5 via-transparent to-primary-600/5"></div>
       
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Main Footer Content */}
+        
         <div className="pt-16 pb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-12">
             
-            {/* Brand Section */}
+
             <div className="col-span-1 md:col-span-2 lg:col-span-2">
               <div className="flex items-center space-x-3 mb-6">
                 <div className="w-12 h-12 glass rounded-xl flex items-center justify-center glow-cyan">
@@ -125,7 +125,7 @@ const Footer: React.FC = () => {
               </div>
             </div>
 
-            {/* Platform Links */}
+
             <div className="col-span-1">
               <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Platform</h4>
               <ul className="space-y-3">
@@ -139,7 +139,6 @@ const Footer: React.FC = () => {
               </ul>
             </div>
 
-            {/* Resources Links */}
             <div className="col-span-1">
               <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Resources</h4>
               <ul className="space-y-3">
@@ -153,7 +152,6 @@ const Footer: React.FC = () => {
               </ul>
             </div>
 
-            {/* Web3 Links */}
             <div className="col-span-1">
               <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Web3</h4>
               <ul className="space-y-3">
@@ -167,7 +165,6 @@ const Footer: React.FC = () => {
               </ul>
             </div>
 
-            {/* Company Links */}
             <div className="col-span-1">
               <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Company</h4>
               <ul className="space-y-3">
@@ -183,11 +180,9 @@ const Footer: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Section */}
         <div className="border-t border-primary-500/10 py-8">
           <div className="flex flex-col lg:flex-row items-center justify-between space-y-4 lg:space-y-0">
             
-            {/* Crisis Support Banner */}
             <div className="glass-card p-4 flex items-center space-x-3 glow-cyan">
               <div className="w-6 h-6 text-red-400">
                 <svg fill="currentColor" viewBox="0 0 24 24">
@@ -204,7 +199,6 @@ const Footer: React.FC = () => {
               </div>
             </div>
 
-            {/* Copyright & Legal */}
             <div className="flex flex-col lg:flex-row items-center space-y-2 lg:space-y-0 lg:space-x-8 text-sm text-gray-500">
               <span>© {currentYear} MindVault. All rights reserved.</span>
               <div className="flex items-center space-x-6">
@@ -223,7 +217,6 @@ const Footer: React.FC = () => {
         </div>
       </div>
 
-      {/* Floating Elements */}
       <div className="absolute top-10 right-10 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl animate-float"></div>
       <div className="absolute bottom-10 left-10 w-24 h-24 bg-primary-600/5 rounded-full blur-3xl animate-float" style={{animationDelay: '1s'}}></div>
     </footer>

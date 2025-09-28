@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import logo from '../assets/logo_only.png';
 import logoText from '../assets/logo_text.png';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
 import WalletModal from './WalletModal';
 
@@ -18,6 +18,7 @@ const Header: React.FC<HeaderProps> = () => {
     disconnectWallet 
   } = useWallet();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -25,6 +26,8 @@ const Header: React.FC<HeaderProps> = () => {
     disconnectWallet();
     navigate('/');
   };
+
+  const isOnChatsPage = location.pathname === '/app/chats';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -56,13 +59,10 @@ const Header: React.FC<HeaderProps> = () => {
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           
-          {/* Logo Section */}
           <a className='flex items-center space-x-2' href="/">
             <img src={logo} alt="MindVault Logo" className="h-12 lg:h-14" />
             <img src={logoText} alt="MindVault Text Logo" className="h-6 lg:h-24 hidden sm:block" />
           </a>
-
-          {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-8">
             {navItems.map((item, index) => (
               <a
@@ -75,10 +75,8 @@ const Header: React.FC<HeaderProps> = () => {
             ))}
           </div>
 
-          {/* Wallet Connection & Mobile Menu */}
           <div className="flex items-center space-x-4">
             
-            {/* Wallet Connection Button */}
             {!isConnected ? (
               <button
                 onClick={openWalletModal}
@@ -97,7 +95,6 @@ const Header: React.FC<HeaderProps> = () => {
                     {user?.username || (address && formatAddress(address))}
                   </span>
                   
-                  {/* Dropdown Menu */}
                   <div className="absolute top-full right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div className="p-3 border-b border-gray-100">
                       {user && (
@@ -109,6 +106,19 @@ const Header: React.FC<HeaderProps> = () => {
                       <div className="text-xs text-gray-500 mb-1">Connected Wallet</div>
                       <div className="text-sm font-mono text-gray-900">{address && formatAddress(address)}</div>
                     </div>
+                    
+                    {!isOnChatsPage && (
+                      <button
+                        onClick={() => navigate('/app/chats')}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:text-primary-600 hover:bg-gray-50 transition-colors flex items-center space-x-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <span>Go to Chats</span>
+                      </button>
+                    )}
+                    
                     <button
                       onClick={handleDisconnect}
                       className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
@@ -120,7 +130,6 @@ const Header: React.FC<HeaderProps> = () => {
               </div>
             )}
 
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="lg:hidden card p-2"
@@ -134,8 +143,6 @@ const Header: React.FC<HeaderProps> = () => {
           </div>
         </div>
       </nav>
-
-      {/* Mobile Menu */}
       <div className={`lg:hidden transition-all duration-300 overflow-hidden ${
         isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
       }`}>
@@ -151,7 +158,6 @@ const Header: React.FC<HeaderProps> = () => {
             </a>
           ))}
           
-          {/* Mobile Wallet Info */}
           {!isConnected ? (
             <button
               onClick={openWalletModal}
@@ -182,6 +188,22 @@ const Header: React.FC<HeaderProps> = () => {
                   </div>
                 </div>
               </div>
+              
+              {!isOnChatsPage && (
+                <button
+                  onClick={() => {
+                    navigate('/app/chats');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="w-full text-left p-2 text-sm text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors flex items-center space-x-2 mb-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span>Go to Chats</span>
+                </button>
+              )}
+              
               <button
                 onClick={handleDisconnect}
                 className="w-full text-left p-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -193,7 +215,6 @@ const Header: React.FC<HeaderProps> = () => {
         </div>
       </div>
       
-      {/* Wallet Modal */}
       <WalletModal 
         isOpen={isWalletModalOpen} 
         onClose={closeWalletModal} 

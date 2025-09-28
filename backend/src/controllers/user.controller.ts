@@ -138,10 +138,190 @@ const setPaymentHistory = async(req:Request,res:Response)=>{
     }
 }
 
+const getCommunityRank = async(req:Request, res:Response) => {
+    try {
+        const { address } = req.params;
+        if (!address) {
+            return res.status(400).json({ message: "Address is required", success: false });
+        }
+        
+        const user = await prisma.user.findUnique({ 
+            where: { walletAddress: address },
+            include: {
+                messages: true,
+                ngoHistories: true
+            }
+        });
+        
+        if (!user) {
+            return res.status(404).json({ message: "User not found", success: false });
+        }
+
+        const messageCount = user.messages.length;
+        const validatedMessages = user.messages.filter(msg => msg.isValidated).length;
+        const totalDonations = user.ngoHistories.reduce((sum, donation) => sum + donation.amountDonated, 0);
+        const tokenBalance = user.tokenBalance;
+        
+        const score = (
+            (messageCount * 2) +
+            (validatedMessages * 10) +     
+            (totalDonations * 0.1) +       
+            (tokenBalance * 0.05)          
+        );
+
+        const allUsers = await prisma.user.findMany({
+            include: {
+                messages: true,
+                ngoHistories: true
+            }
+        });
+
+        const usersWithScores = allUsers.map(u => {
+            const msgs = u.messages.length;
+            const validated = u.messages.filter(msg => msg.isValidated).length;
+            const donations = u.ngoHistories.reduce((sum, donation) => sum + donation.amountDonated, 0);
+            const userScore = (
+                (msgs * 2) +
+                (validated * 10) +
+                (donations * 0.1) +
+                (u.tokenBalance * 0.05)
+            );
+            
+            return {
+                id: u.id,
+                username: u.username,
+                walletAddress: u.walletAddress,
+                profilePicture: u.profilePicture,
+                score: userScore,
+                messageCount: msgs,
+                validatedMessages: validated,
+                totalDonations: donations,
+                tokenBalance: u.tokenBalance
+            };
+        });
+
+        usersWithScores.sort((a, b) => b.score - a.score);
+        
+        
+        const userRank = usersWithScores.findIndex(u => u.walletAddress === address) + 1;
+        const totalUsers = usersWithScores.length;
+        
+        
+        const leaderboard = usersWithScores.slice(0, 10);
+
+        const percentile = Math.round(((totalUsers - userRank + 1) / totalUsers) * 100);
+        
+        
+        let tier = "Bronze";
+        let tierColor = "#CD7F32";
+        if (percentile >= 90) {
+            tier = "Diamond";
+            tierColor = "#B9F2FF";
+        } else if (percentile >= 75) {
+            tier = "Platinum";
+            tierColor = "#E5E4E2";
+        } else if (percentile >= 50) {
+            tier = "Gold";
+            tierColor = "#FFD700";
+        } else if (percentile >= 25) {
+            tier = "Silver";
+            tierColor = "#C0C0C0";
+        }
+
+        const rankingData = {
+            user: {
+                rank: userRank,
+                score: Math.round(score),
+                tier,
+                tierColor,
+                percentile,
+                messageCount,
+                validatedMessages,
+                totalDonations,
+                tokenBalance
+            },
+            leaderboard: leaderboard.map((u, index) => ({
+                rank: index + 1,
+                username: u.username,
+                profilePicture: u.profilePicture,
+                score: Math.round(u.score),
+                tier: index < 3 ? ["Diamond", "Platinum", "Gold"][index] : "Silver"
+            })),
+            totalUsers
+        };
+
+        return res.status(200).json({
+            message: "Community ranking fetched successfully",
+            data: rankingData,
+            success: true
+        });
+        
+    } catch (error) {
+        console.error("Error fetching community ranking:", error);
+        return res.status(500).json({ message: "Internal server error", success: false });
+    }
+}
+
+const getLeaderboard = async(req:Request, res:Response) => {
+    try {
+        const { limit = 50 } = req.query;
+        
+        const allUsers = await prisma.user.findMany({
+            include: {
+                messages: true,
+                ngoHistories: true
+            }
+        });
+
+        const usersWithScores = allUsers.map(u => {
+            const msgs = u.messages.length;
+            const validated = u.messages.filter(msg => msg.isValidated).length;
+            const donations = u.ngoHistories.reduce((sum, donation) => sum + donation.amountDonated, 0);
+            const userScore = (
+                (msgs * 2) +
+                (validated * 10) +
+                (donations * 0.1) +
+                (u.tokenBalance * 0.05)
+            );
+            
+            return {
+                rank: 0, 
+                username: u.username,
+                profilePicture: u.profilePicture,
+                walletAddress: u.walletAddress,
+                score: Math.round(userScore),
+                messageCount: msgs,
+                validatedMessages: validated,
+                totalDonations: donations,
+                tokenBalance: u.tokenBalance
+            };
+        });
+
+        usersWithScores.sort((a, b) => b.score - a.score);
+        
+        const rankedUsers = usersWithScores.map((user, index) => ({
+            ...user,
+            rank: index + 1
+        })).slice(0, Number(limit));
+
+        return res.status(200).json({
+            message: "Leaderboard fetched successfully",
+            data: rankedUsers,
+            success: true
+        });
+        
+    } catch (error) {
+        console.error("Error fetching leaderboard:", error);
+        return res.status(500).json({ message: "Internal server error", success: false });
+    }
+}
+
 export {
     usersignuporlogin,
     getHistory,
     getPrivateChats,
     getPaymentHistory,
-    setPaymentHistory
+    setPaymentHistory,
+    getCommunityRank,
+    getLeaderboard
 };

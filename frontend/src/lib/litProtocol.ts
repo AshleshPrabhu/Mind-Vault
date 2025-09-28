@@ -37,7 +37,7 @@ export interface ChatroomAccessCondition {
 class LitProtocolService {
   private litNodeClient: LitJsSdk.LitNodeClient | null = null;
   private sessionSigs: any = null;
-  private chain = "sepolia"; // Using Sepolia testnet for development
+  private chain = "sepolia";
 
   constructor() {
     this.initLitClient();
@@ -45,13 +45,10 @@ class LitProtocolService {
   }
 
   private setupEventListeners() {
-    // Listen for wallet connection events
     window.addEventListener('connect-wallet', () => {
-      // Trigger wallet connection - this would be handled by WalletContext
       console.log('Wallet connection requested from Lit Protocol');
     });
 
-    // Listen for Lit reconnection events
     window.addEventListener('reconnect-lit', () => {
       this.clearSessions();
       this.initLitClient();
@@ -63,18 +60,18 @@ class LitProtocolService {
     
     try {
       this.litNodeClient = new LitJsSdk.LitNodeClient({
-        litNetwork: LIT_NETWORK.DatilDev, // Development network
+        litNetwork: LIT_NETWORK.DatilDev, 
         debug: false,
       });
 
       await this.litNodeClient.connect();
-      console.log("✅ Connected to Lit Network");
+      console.log("Connected to Lit Network");
       
       dismissToast(loadingToast);
       showEncryptionSuccess('connect');
     } catch (error) {
       dismissToast(loadingToast);
-      console.error("❌ Failed to connect to Lit Network:", error);
+      console.error(" Failed to connect to Lit Network:", error);
       
       const litError = new LitProtocolError(
         EncryptionErrorType.CONNECTION_FAILED,
@@ -92,26 +89,22 @@ class LitProtocolService {
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         if (!this.litNodeClient) {
-          console.log(`🔗 Connecting to Lit Protocol (attempt ${attempt + 1}/${retries + 1})...`);
+          console.log(`Connecting to Lit Protocol (attempt ${attempt + 1}/${retries + 1})...`);
           await this.initLitClient();
         }
         
-        // Test connection health
         if (this.litNodeClient) {
-          // Try to get latest blockhash to test connection
           await this.litNodeClient.getLatestBlockhash();
-          return; // Connection is healthy
+          return;
         }
       } catch (error) {
-        console.warn(`❌ Connection attempt ${attempt + 1} failed:`, error);
+        console.warn(` Connection attempt ${attempt + 1} failed:`, error);
         
         if (attempt < retries) {
-          // Wait before retrying (exponential backoff)
           const delay = Math.pow(2, attempt) * 1000;
-          console.log(`⏳ Retrying in ${delay}ms...`);
+          console.log(`Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           
-          // Reset client for retry
           this.litNodeClient = null;
         } else {
           throw new Error('Failed to connect to Lit Protocol after multiple attempts');
@@ -120,12 +113,7 @@ class LitProtocolService {
     }
   }
 
-  /**
-   * Create access control conditions for chatroom-based encryption
-   * Only users who are members of the chatroom can decrypt messages
-   */
-  private createChatroomAccessConditions(roomId: number, _walletAddress: string): any[] {
-    // For global chat (roomId = 1), allow anyone with a valid wallet
+  private async createChatroomAccessConditions(roomId: number, walletAddress: string, chatRoom?: any): Promise<any[]> {
     if (roomId === 1) {
       return [
         {
@@ -136,33 +124,93 @@ class LitProtocolService {
           parameters: [":userAddress", "latest"],
           returnValueTest: {
             comparator: ">=",
-            value: "0", // Must have at least 0 ETH (essentially just need a valid wallet)
+            value: "0",
           },
         }
       ];
     }
 
-    // For private chats, we could implement more sophisticated logic
-    // For now, we'll use a simple wallet-based check but this could be enhanced
-    // to check if the user is actually a member of the private chat
-    return [
-      {
+    let participants = [];
+    
+    if (chatRoom && chatRoom.participants) {
+      participants = chatRoom.participants;
+    } else {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chatrooms/${roomId}`);
+        if (response.ok) {
+          const roomDataResponse = await response.json();
+          if (roomDataResponse.success && roomDataResponse.data) {
+            participants = roomDataResponse.data.participants || [];
+          }
+        }
+      } catch (error) {
+        console.warn(` Could not fetch room info for room ${roomId}:`, error);
+      }
+    }
+
+    const participantAddresses = participants
+      .filter((p: any) => p.walletAddress && p.walletAddress.startsWith('0x'))
+      .map((p: any) => p.walletAddress);
+
+    if (participantAddresses.length === 0) {
+      console.warn(`⚠️ No participants found for room ${roomId}, using current user only`);
+      return [
+        {
+          contractAddress: "",
+          standardContractType: "",
+          chain: this.chain,
+          method: "eth_getBalance",
+          parameters: [walletAddress, "latest"],
+          returnValueTest: {
+            comparator: ">=",
+            value: "0",
+          },
+        }
+      ];
+    }
+
+    console.log(`Creating access conditions for participants:`, participantAddresses);
+    
+    if (participantAddresses.length === 1) {
+      return [
+        {
+          contractAddress: "",
+          standardContractType: "",
+          chain: this.chain,
+          method: "eth_getBalance",
+          parameters: [participantAddresses[0], "latest"],
+          returnValueTest: {
+            comparator: ">=",
+            value: "0",
+          },
+        }
+      ];
+    }
+
+    const conditions = [];
+    for (let i = 0; i < participantAddresses.length; i++) {
+      const condition: any = {
         contractAddress: "",
         standardContractType: "",
         chain: this.chain,
-        method: "eth_getBalance", 
-        parameters: [":userAddress", "latest"],
+        method: "eth_getBalance",
+        parameters: [participantAddresses[i], "latest"],
         returnValueTest: {
           comparator: ">=",
-          value: "1000000000000000", // Must have at least 0.001 ETH for private chats (slightly higher requirement)
+          value: "0",
         },
+      };
+
+      if (i > 0) {
+        condition.operator = "or";
       }
-    ];
+
+      conditions.push(condition);
+    }
+
+    return conditions;
   }
 
-  /**
-   * Get session signatures for authentication with Lit nodes
-   */
   private async getSessionSignatures(walletAddress: string): Promise<any> {
     try {
       await this.ensureConnection();
@@ -171,15 +219,12 @@ class LitProtocolService {
         throw new Error("No ethereum provider found");
       }
 
-      // Connect to the wallet
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       await provider.send("eth_requestAccounts", []);
       const signer = provider.getSigner();
 
-      // Get the latest blockhash
       const latestBlockhash = await this.litNodeClient!.getLatestBlockhash();
 
-      // Define the authNeededCallback function
       const authNeededCallback = async (params: any) => {
         if (!params.uri) {
           throw new Error("uri is required");
@@ -191,7 +236,6 @@ class LitProtocolService {
           throw new Error("resourceAbilityRequests is required");
         }
 
-        // Create the SIWE message
         const toSign = await createSiweMessageWithRecaps({
           uri: params.uri,
           expiration: params.expiration,
@@ -201,7 +245,6 @@ class LitProtocolService {
           litNodeClient: this.litNodeClient!,
         });
 
-        // Generate the authSig
         const authSig = await generateAuthSig({
           signer: signer,
           toSign,
@@ -210,10 +253,8 @@ class LitProtocolService {
         return authSig;
       };
 
-      // Define the Lit resource
       const litResource = new LitAccessControlConditionResource('*');
 
-      // Get the session signatures
       const sessionSigs = await this.litNodeClient!.getSessionSigs({
         chain: this.chain,
         resourceAbilityRequests: [
@@ -228,23 +269,20 @@ class LitProtocolService {
       this.sessionSigs = sessionSigs;
       return sessionSigs;
     } catch (error) {
-      console.error("❌ Failed to get session signatures:", error);
+      console.error(" Failed to get session signatures:", error);
       throw error;
     }
   }
 
-  /**
-   * Encrypt a message with chatroom-based access control
-   */
   async encryptMessage(
     message: string, 
     roomId: number, 
-    walletAddress: string
+    walletAddress: string,
+    chatRoom?: any 
   ): Promise<EncryptedData> {
     const loadingToast = showEncryptionLoading('encrypt');
     
     try {
-      // Validate inputs
       if (!message || message.trim() === '') {
         dismissToast(loadingToast);
         throw new LitProtocolError(
@@ -265,7 +303,6 @@ class LitProtocolService {
         );
       }
 
-      // Ensure Lit client is connected
       await this.ensureConnection();
       
       if (!this.litNodeClient) {
@@ -278,12 +315,11 @@ class LitProtocolService {
         );
       }
 
-      // Create access control conditions for this chatroom
-      const accessControlConditions = this.createChatroomAccessConditions(roomId, walletAddress);
+      const accessControlConditions = await this.createChatroomAccessConditions(roomId, walletAddress, chatRoom);
 
-      console.log(`🔐 Encrypting message for room ${roomId}...`);
+      console.log(` Encrypting message for room ${roomId}...`);
+      console.log(` Access conditions:`, accessControlConditions);
 
-      // Encrypt the message
       const { ciphertext, dataToEncryptHash } = await encryptString(
         {
           accessControlConditions,
@@ -292,7 +328,7 @@ class LitProtocolService {
         this.litNodeClient
       );
 
-      console.log("✅ Message encrypted successfully");
+      console.log("Message encrypted successfully");
       dismissToast(loadingToast);
       showEncryptionSuccess('encrypt');
 
@@ -303,14 +339,13 @@ class LitProtocolService {
       };
     } catch (error) {
       dismissToast(loadingToast);
-      console.error("❌ Failed to encrypt message:", error);
+      console.error(" Failed to encrypt message:", error);
       
       if (error instanceof LitProtocolError) {
         handleEncryptionError(error, 'encryptMessage');
         throw error;
       }
       
-      // Provide more specific error messages
       if (error instanceof Error) {
         if (error.message.includes('User denied')) {
           const litError = new LitProtocolError(
@@ -348,15 +383,11 @@ class LitProtocolService {
     }
   }
 
-  /**
-   * Decrypt a message if user has access
-   */
   async decryptMessage(
     encryptedData: EncryptedData,
     walletAddress: string
   ): Promise<string> {
     try {
-      // Validate inputs
       if (!encryptedData) {
         throw new LitProtocolError(
           EncryptionErrorType.INVALID_DATA,
@@ -384,7 +415,6 @@ class LitProtocolService {
         );
       }
 
-      // Ensure connection
       await this.ensureConnection();
       
       if (!this.litNodeClient) {
@@ -396,9 +426,8 @@ class LitProtocolService {
         );
       }
 
-      console.log(`🔓 Decrypting message...`);
+      console.log(`Decrypting message...`);
 
-      // Get session signatures if not already obtained
       if (!this.sessionSigs) {
         try {
           await this.getSessionSignatures(walletAddress);
@@ -413,7 +442,6 @@ class LitProtocolService {
         }
       }
 
-      // Decrypt the message
       const decryptedString = await decryptToString(
         {
           accessControlConditions: encryptedData.accessControlConditions,
@@ -425,17 +453,16 @@ class LitProtocolService {
         this.litNodeClient
       );
 
-      console.log("✅ Message decrypted successfully");
+      console.log(" Message decrypted successfully");
       return decryptedString;
     } catch (error) {
-      console.error("❌ Failed to decrypt message:", error);
+      console.error(" Failed to decrypt message:", error);
       
       if (error instanceof LitProtocolError) {
         handleEncryptionError(error, 'decryptMessage');
         throw error;
       }
       
-      // Provide more specific error messages
       if (error instanceof Error) {
         if (error.message.includes('User denied')) {
           const litError = new LitProtocolError(
@@ -468,7 +495,7 @@ class LitProtocolService {
           throw litError;
         }
         if (error.message.includes('session') || error.message.includes('signature')) {
-          this.clearSessions(); // Clear stale sessions
+          this.clearSessions(); 
           const litError = new LitProtocolError(
             EncryptionErrorType.SESSION_EXPIRED,
             'Authentication session expired. Please refresh and try again.',
@@ -490,60 +517,41 @@ class LitProtocolService {
       throw litError;
     }
   }
-
-  /**
-   * Check if a user can decrypt messages in a specific chatroom
-   */
   async canDecryptInRoom(roomId: number, walletAddress: string): Promise<boolean> {
     try {
-      // Basic validation: user must have a valid wallet address
       if (!walletAddress || walletAddress.length !== 42 || !walletAddress.startsWith('0x')) {
         return false;
       }
 
-      // For global chat (roomId = 1), anyone can decrypt
       if (roomId === 1) {
         return true;
       }
 
-      // For private chats, we could implement more sophisticated logic
-      // This could involve checking your backend API to see if the user is a member
-      // For now, we'll allow anyone with a valid wallet to access private chats
-      // In production, you'd want to verify membership through your backend
-      
       return true;
     } catch (error) {
-      console.error("❌ Failed to check decrypt permissions:", error);
+      console.error("Failed to check decrypt permissions:", error);
       return false;
     }
   }
 
-  /**
-   * Disconnect from Lit network
-   */
   async disconnect() {
     try {
       if (this.litNodeClient) {
         await this.litNodeClient.disconnect();
         this.litNodeClient = null;
         this.sessionSigs = null;
-        console.log("✅ Disconnected from Lit Network");
+        console.log("Disconnected from Lit Network");
       }
     } catch (error) {
-      console.error("❌ Failed to disconnect from Lit Network:", error);
+      console.error("Failed to disconnect from Lit Network:", error);
     }
   }
 
-  /**
-   * Clear cached session signatures (useful for wallet changes)
-   */
   clearSessions() {
     this.sessionSigs = null;
-    // Clear any cached auth data
     LitJsSdk.disconnectWeb3();
   }
 }
 
-// Export a singleton instance
 export const litProtocolService = new LitProtocolService();
 export default litProtocolService;

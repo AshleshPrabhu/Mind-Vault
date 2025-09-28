@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useWallet } from './WalletContext';
 import litProtocolService, { type EncryptedData } from '../lib/litProtocol';
+import { API_BASE_URL } from '../config';
 
-// Define the socket events interface
 interface ServerToClientEvents {
   user_joined: (data: { userId: number; roomId: number }) => void;
   new_message: (message: any) => void;
@@ -46,7 +46,7 @@ interface SocketContextType {
   validateMessage: (messageId: number) => void;
   unvalidateMessage: (messageId: number) => void;
   onlineUsers: Set<number>;
-  typingUsers: Map<number, number[]>; // roomId -> userId[]
+  typingUsers: Map<number, number[]>; 
 }
 
 const SocketContext = createContext<SocketContextType | null>(null);
@@ -70,28 +70,42 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [typingUsers, setTypingUsers] = useState<Map<number, number[]>>(new Map());
   
   const { user } = useWallet();
+  
+  const currentUserIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id || currentUserIdRef.current === user.id) return;
+    
+    currentUserIdRef.current = user.id;
 
-    // Initialize socket connection
+    console.log('Connecting socket for user:', user.id);
+
     const newSocket: Socket<ServerToClientEvents, ClientToServerEvents> = io('http://localhost:3000', {
       withCredentials: true,
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      forceNew: true,
+      autoConnect: true,
+      timeout: 20000,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
     });
 
-    // Connection event handlers
     newSocket.on('connect', () => {
       console.log('Connected to socket server:', newSocket.id);
       setIsConnected(true);
     });
 
-    newSocket.on('disconnect', () => {
-      console.log('Disconnected from socket server');
+    newSocket.on('disconnect', (reason) => {
+      console.log('Disconnected from socket server:', reason);
       setIsConnected(false);
     });
 
-    // Set up event listeners
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      setIsConnected(false);
+    });
+
     newSocket.on('user_joined', (data) => {
       console.log('User joined room:', data);
       setOnlineUsers(prev => new Set(prev).add(data.userId));
@@ -99,7 +113,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
     newSocket.on('new_message', (message) => {
       console.log('New message received:', message);
-      // This will be handled by individual chat components
     });
 
     newSocket.on('user_typing', (data) => {
@@ -134,27 +147,34 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       });
     });
 
+    newSocket.on('private_room_created', (data) => {
+      console.log('Private room created event received:', data);
+    });
+
     setSocket(newSocket);
 
     return () => {
+      console.log('Cleaning up socket connection');
+      newSocket.removeAllListeners();
       newSocket.disconnect();
+      setIsConnected(false);
     };
-  }, [user?.id]);
-
-  // Socket action functions
-  const joinRoom = (roomId: number) => {
+  }, [user?.id]); 
+  const joinRoom = React.useCallback((roomId: number) => {
     if (socket && user?.id && isConnected) {
+      console.log('Joining room:', roomId);
       socket.emit('join_room', { roomId, userId: user.id });
     }
-  };
+  }, [socket, user?.id, isConnected]);
 
-  const leaveRoom = (roomId: number) => {
+  const leaveRoom = React.useCallback((roomId: number) => {
     if (socket && isConnected) {
+      console.log('Leaving room:', roomId);
       socket.emit('leave_room' as any, { roomId });
     }
-  };
+  }, [socket, isConnected]);
 
-  const sendMessage = async (roomId: number, content: string, replyToId?: number, encrypted: boolean = false) => {
+  const sendMessage = React.useCallback(async (roomId: number, content: string, replyToId?: number, encrypted: boolean = false) => {
     if (!socket || !user?.id || !isConnected || !user?.walletAddress) return;
 
     try {
@@ -167,7 +187,6 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         encryptedData: undefined as EncryptedData | undefined
       };
 
-      // Encrypt message if requested
       if (encrypted) {
         try {
           const encryptedData = await litProtocolService.encryptMessage(
@@ -178,13 +197,13 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           
           messageData = {
             ...messageData,
-            content: "[Encrypted Message]", // Placeholder text
+            content: "[Encrypted Message]", 
             isEncrypted: true,
             encryptedData
           };
         } catch (encryptionError) {
           console.error("Failed to encrypt message:", encryptionError);
-          // Fall back to unencrypted message
+         
           console.log("Falling back to unencrypted message");
         }
       }
@@ -193,9 +212,9 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     } catch (error) {
       console.error("Error sending message:", error);
     }
-  };
+  }, [socket, user?.id, user?.walletAddress, isConnected]);
 
-  const joinPrivateChat = (peerId: number, type: 'PRIVATE' | 'AI' = 'PRIVATE') => {
+  const joinPrivateChat = React.useCallback((peerId: number, type: 'PRIVATE' | 'AI' = 'PRIVATE') => {
     if (socket && user?.id && isConnected) {
       socket.emit('join_private', { 
         userId: user.id, 
@@ -203,33 +222,48 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         type 
       });
     }
-  };
+  }, [socket, user?.id, isConnected]);
 
-  const startTyping = (roomId: number) => {
+  const startTyping = React.useCallback((roomId: number) => {
     if (socket && user?.id && isConnected) {
       socket.emit('typing_start', { roomId, userId: user.id });
     }
-  };
+  }, [socket, user?.id, isConnected]);
 
-  const stopTyping = (roomId: number) => {
+  const stopTyping = React.useCallback((roomId: number) => {
     if (socket && user?.id && isConnected) {
       socket.emit('typing_stop', { roomId, userId: user.id });
     }
-  };
+  }, [socket, user?.id, isConnected]);
 
-  const validateMessage = (messageId: number) => {
-    if (socket && user?.id && isConnected) {
-      socket.emit('validate_message', { messageId, validatedBy: user.id });
+  const validateMessage = React.useCallback(async (messageId: number) => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/message/${messageId}/validate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ validatorId: user.id }),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        console.log('Message validated successfully:', data);
+      } else {
+        console.error('Validation failed:', data.message);
+      }
+    } catch (error) {
+      console.error('Error validating message:', error);
     }
-  };
+  }, [user?.id]);
 
-  const unvalidateMessage = (messageId: number) => {
-    if (socket && user?.id && isConnected) {
-      socket.emit('unvalidate_message', { messageId, unvalidatedBy: user.id });
-    }
-  };
+  const unvalidateMessage = React.useCallback(async (_messageId: number) => {
+    console.log('Unvalidate not implemented via API yet');
+  }, []);
 
-  const value: SocketContextType = {
+  const value = React.useMemo<SocketContextType>(() => ({
     socket,
     isConnected,
     joinRoom,
@@ -242,7 +276,20 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     unvalidateMessage,
     onlineUsers,
     typingUsers
-  };
+  }), [
+    socket,
+    isConnected,
+    joinRoom,
+    leaveRoom,
+    sendMessage,
+    joinPrivateChat,
+    startTyping,
+    stopTyping,
+    validateMessage,
+    unvalidateMessage,
+    onlineUsers,
+    typingUsers
+  ]);
 
   return (
     <SocketContext.Provider value={value}>

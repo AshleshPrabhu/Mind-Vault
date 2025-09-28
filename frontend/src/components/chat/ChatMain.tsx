@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { History, CheckCircle, Bot, Sparkles } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { History, CheckCircle, Search, X } from 'lucide-react';
 import ChatHistory from '../ChatHistory';
 import type { ChatMessage, ChatRoom } from '../../pages/Chat';
+import publicLogo from '../../assets/public.png';
 import { useWallet } from '../../contexts/WalletContext';
 
 interface ChatMainProps {
@@ -13,6 +13,7 @@ interface ChatMainProps {
   onStartPrivateChat?: (senderName: string, senderId: string) => void;
   onValidateMessage?: (messageId: number) => void;
   onUnvalidateMessage?: (messageId: number) => void;
+  isLoadingMessages?: boolean;
 }
 
 const ChatMain: React.FC<ChatMainProps> = ({
@@ -22,23 +23,63 @@ const ChatMain: React.FC<ChatMainProps> = ({
   onSendMessage,
   onStartPrivateChat,
   onValidateMessage,
-  onUnvalidateMessage
+  onUnvalidateMessage,
+  isLoadingMessages = false
 }) => {
   const { user } = useWallet();
-    const navigate = useNavigate();
   const [newMessage, setNewMessage] = useState('');
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeMessageMenu, setActiveMessageMenu] = useState<number | null>(null);
   const [showChatHistory, setShowChatHistory] = useState(false);
   const [encryptMessage, setEncryptMessage] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const validatedMessages = new Set(
     messages
-      .filter(msg => msg.isValidated)
-      .map(msg => msg.id)
+      .flatMap(msg => [
+        ...(msg.isValidated ? [msg.id] : []),
+        ...(msg.replies || []).filter(reply => reply.isValidated).map(reply => reply.id)
+      ])
   );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSearchToggle = () => {
+    setShowSearch(!showSearch);
+    if (!showSearch) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    } else {
+      setSearchQuery('');
+    }
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    searchInputRef.current?.focus();
+  };
+
+  const filteredMessages = useMemo(() => {
+    if (!searchQuery.trim()) return messages;
+    
+    const query = searchQuery.toLowerCase();
+    return messages.filter(message => {
+      const messageMatch = message.content.toLowerCase().includes(query) ||
+                          message.senderName.toLowerCase().includes(query);
+      
+      const replyMatch = message.replies?.some(reply => 
+        reply.content.toLowerCase().includes(query) ||
+        reply.senderName.toLowerCase().includes(query)
+      );
+      
+      return messageMatch || replyMatch;
+    });
+  }, [messages, searchQuery]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -150,6 +191,10 @@ const ChatMain: React.FC<ChatMainProps> = ({
   };
 
   const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
+    console.log(`Message ${message.id} replies:`, message.replies);
+    console.log('Current user:', user);
+    console.log('User role:', user?.role);
+    
     const getProfileColor = (name: string) => {
       const colors = [
         'bg-gradient-to-br from-blue-500 to-blue-600',
@@ -226,6 +271,17 @@ const ChatMain: React.FC<ChatMainProps> = ({
                     </div>
                   </>
                 )}
+                {message.replies && message.replies.length > 0 && (
+                  <>
+                    <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+                    <div className="text-xs text-primary-600 flex items-center space-x-1">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                      </svg>
+                      <span>{message.replies.length} {message.replies.length === 1 ? 'reply' : 'replies'}</span>
+                    </div>
+                  </>
+                )}
               </div>
             )}
             
@@ -241,15 +297,7 @@ const ChatMain: React.FC<ChatMainProps> = ({
               {message.content}
             </div>
             
-            {!message.isMe && validatedMessages.has(message.id) && (
-              <div 
-                className="flex items-center space-x-1 mt-2 pt-2 border-t border-green-100 text-green-600 bg-green-50/30 rounded px-2 py-1"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <CheckCircle className="w-4 h-4" />
-                <span className="text-xs font-medium">Validated</span>
-              </div>
-            )}
+
             
             {(message.isMe || activeChat.type === 'PRIVATE') && (
               <div className={`
@@ -323,44 +371,94 @@ const ChatMain: React.FC<ChatMainProps> = ({
                         </div>
                       </button>
 
-                      <div className="border-t border-gray-100 mt-1 pt-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleValidateMessage(message.id);
-                            setActiveMessageMenu(null);
-                          }}
-                          className={`w-full px-4 py-3 text-left rounded-xl text-sm hover:bg-gray-50 flex items-center space-x-3 transition-all duration-150 hover:translate-x-1 ${
-                            validatedMessages.has(message.id) 
-                              ? 'text-green-600 bg-green-50/50' 
-                              : 'text-gray-700'
-                          }`}
-                        >
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                            validatedMessages.has(message.id) 
-                              ? 'bg-green-50' 
-                              : 'bg-gray-50'
-                          }`}>
-                            <CheckCircle className={`w-4 h-4 ${
-                              validatedMessages.has(message.id) ? 'text-green-600' : 'text-gray-500'
-                            }`} />
-                          </div>
-                          <div>
-                            <div className="font-medium">
-                              {validatedMessages.has(message.id) ? 'Remove Validation' : 'Validate'}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {validatedMessages.has(message.id) ? 'Unmark as verified' : 'Mark as verified content'}
-                            </div>
-                          </div>
-                        </button>
-                      </div>
                     </div>
                   )}
                 </div>
               </div>
             )}
           </div>
+          
+          {message.replies && message.replies.length > 0 && (
+            <div className="mt-3 ml-8 space-y-2">
+              {message.replies.map(reply => (
+                <div key={reply.id} className="relative">
+                  <div className="flex items-start space-x-2">
+                    <div className="flex-shrink-0">
+                      <div className={`
+                        w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold text-xs shadow-sm
+                        ring-1 ring-white ring-offset-1
+                        ${getProfileColor(reply.senderName)}
+                      `}>
+                        {getInitials(reply.senderName)}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="text-xs font-semibold text-gray-700">{reply.senderName}</span>
+                          <span className="text-xs text-gray-500">{formatMessageTime(reply.timestamp)}</span>
+                          {reply.isEncrypted && (
+                            <span className={`text-xs flex items-center space-x-1 ${
+                              reply.decrypted ? 'text-green-600' : 'text-yellow-600'
+                            }`}>
+                              <span>{reply.decrypted ? '🔓' : '🔒'}</span>
+                              <span>{reply.decrypted ? 'Decrypted' : 'Encrypted'}</span>
+                            </span>
+                          )}
+                        </div>
+                        <div className={`text-sm text-gray-800 whitespace-pre-wrap break-words ${
+                          reply.isEncrypted && !reply.decrypted ? 'italic text-gray-500' : ''
+                        }`}>
+                          {reply.isEncrypted && reply.decryptionError && (
+                            <div className="flex items-center space-x-2 mb-1 text-red-600">
+                              <span className="text-xs">🔒</span>
+                              <span className="text-xs font-medium">Decryption failed</span>
+                            </div>
+                          )}
+                          {reply.content}
+                        </div>
+                        {reply.isValidated && (
+                          <div className="flex items-center space-x-1 mt-1 text-green-600">
+                            <CheckCircle className="w-3 h-3" />
+                            <span className="text-xs font-medium">Validated</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-end mt-1">
+                        {user?.role === 'VALIDATOR' && (
+                          <div className="relative">
+                            {validatedMessages.has(reply.id) ? (
+                              <div className="text-xs flex items-center space-x-1 px-2 py-1 rounded text-green-600 bg-green-50">
+                                <CheckCircle className="w-3 h-3" />
+                                <span>Validated & Rewarded</span>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('User role:', user?.role);
+                                  console.log('Reply ID:', reply.id);
+                                  console.log('Is validated:', validatedMessages.has(reply.id));
+                                  handleValidateMessage(reply.id);
+                                }}
+                                className="text-xs flex items-center space-x-1 px-2 py-1 rounded transition-all duration-200 text-gray-500 hover:text-green-600 hover:bg-green-50"
+                                title="Validate and reward reply"
+                              >
+                                <CheckCircle className="w-3 h-3" />
+                                <span>Validate</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -383,12 +481,10 @@ const ChatMain: React.FC<ChatMainProps> = ({
 
           <div className={`
             w-10 h-10 rounded-full flex items-center justify-center font-semibold text-white
-            ${activeChat.type === 'GLOBAL' ? 'bg-primary-600' : 'bg-gray-600'}
+            ${activeChat.type === 'GLOBAL' ? 'bg-primary-50' : 'bg-gray-600'}
           `}>
             {activeChat.type === 'GLOBAL' ? (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z" />
-              </svg>
+              <img src={publicLogo} alt="public" />
             ) : (
               activeChat.roomName.charAt(0).toUpperCase()
             )}
@@ -402,6 +498,18 @@ const ChatMain: React.FC<ChatMainProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
+            <button
+              onClick={handleSearchToggle}
+              className={`p-2 rounded-lg transition-colors ${
+                showSearch 
+                  ? 'text-primary-600 bg-primary-50' 
+                  : 'text-gray-500 hover:text-primary-600 hover:bg-gray-100'
+              }`}
+              title="Search messages"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+            
             {activeChat.type === 'GLOBAL' && (
               <button 
                 onClick={() => setShowChatHistory(true)}
@@ -415,21 +523,105 @@ const ChatMain: React.FC<ChatMainProps> = ({
         </div>
       </div>
 
+      {showSearch && (
+        <div className="bg-white border-b border-gray-200 px-4 py-3">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400" />
+            </div>
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="
+                block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg
+                focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+                placeholder-gray-400 text-sm
+              "
+              placeholder={`Search messages in ${activeChat.roomName}...`}
+            />
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <div className="mt-2 text-xs text-gray-500">
+              {filteredMessages.length} message{filteredMessages.length !== 1 ? 's' : ''} found
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto overflow-x-visible p-4 space-y-1">
-        {messages.length === 0 ? (
+        {isLoadingMessages ? (
+          <div className="space-y-4">
+            <div className="flex items-start space-x-3 animate-pulse">
+              <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
+              <div className="flex-1">
+                <div className="bg-gray-200 rounded-lg p-3 max-w-xs">
+                  <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-300 rounded w-1/2"></div>
+                </div>
+                <div className="h-3 bg-gray-200 rounded w-16 mt-1"></div>
+              </div>
+            </div>
+            
+            <div className="flex items-start space-x-3 animate-pulse justify-end">
+              <div className="flex-1">
+                <div className="bg-primary-200 rounded-lg p-3 max-w-xs ml-auto">
+                  <div className="h-4 bg-primary-300 rounded w-2/3 mb-2"></div>
+                  <div className="h-3 bg-primary-300 rounded w-1/3"></div>
+                </div>
+                <div className="h-3 bg-gray-200 rounded w-12 mt-1 ml-auto"></div>
+              </div>
+              <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
+            </div>
+            
+            <div className="flex items-start space-x-3 animate-pulse">
+              <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
+              <div className="flex-1">
+                <div className="bg-gray-200 rounded-lg p-3 max-w-sm">
+                  <div className="h-4 bg-gray-300 rounded w-full mb-2"></div>
+                  <div className="h-4 bg-gray-300 rounded w-5/6 mb-2"></div>
+                  <div className="h-3 bg-gray-300 rounded w-1/3"></div>
+                </div>
+                <div className="h-3 bg-gray-200 rounded w-20 mt-1"></div>
+              </div>
+            </div>
+          </div>
+        ) : filteredMessages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center text-gray-500">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
+                {searchQuery ? (
+                  <Search className="w-8 h-8 text-gray-400" />
+                ) : (
+                  <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                )}
               </div>
-              <p className="text-lg font-medium">No messages yet</p>
-              <p className="text-sm">Start a conversation!</p>
+              <p className="text-sm">
+                {searchQuery ? `No messages found for "${searchQuery}"` : 'Start a conversation!'}
+              </p>
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="mt-2 text-xs text-primary-600 hover:text-primary-700 underline"
+                >
+                  Clear search
+                </button>
+              )}
             </div>
           </div>
         ) : (
-          messages.map(message => (
+          filteredMessages.map(message => (
             <MessageBubble key={message.id} message={message} />
           ))
         )}
@@ -555,39 +747,6 @@ const ChatMain: React.FC<ChatMainProps> = ({
         isOpen={showChatHistory}
         onClose={() => setShowChatHistory(false)}
       />
-
-      {/* AI Assistant Bubble - Fixed Position */}
-      <div className="fixed top-3 right-18 z-50">
-        <button
-          onClick={() => navigate('/app/ai-chat')}
-          className="
-            group relative bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600
-            text-white p-4 rounded-full shadow-lg hover:shadow-xl
-            transform transition-all duration-300 hover:scale-110 active:scale-95
-            ring-4 ring-primary-100 hover:ring-primary-200
-            hover:animate-none
-          "
-          title="Chat with AI Assistant"
-        >
-          
-          <div className="relative flex items-center justify-center">
-            <Bot className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
-            <Sparkles className="w-2 h-2 absolute -top-1 -right-1 opacity-75 group-hover:opacity-100 transition-opacity duration-300" />
-          </div>
-          
-          {/* Tooltip */}
-          <div className="
-            absolute bottom-full right-0 mb-3 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg
-            opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-2 group-hover:translate-y-0
-            whitespace-nowrap pointer-events-none
-          ">
-            <div className="relative">
-              AI Companion
-              <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-            </div>
-          </div>
-        </button>
-      </div>
     </div>
   );
 };

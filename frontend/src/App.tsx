@@ -11,6 +11,7 @@ import Chat from './pages/Chat';
 import Profile from './pages/Profile';
 import AIChat from './pages/AIChat';
 import About from './pages/About';
+import Demo from './pages/Demo';
 import './index.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { WagmiProvider } from 'wagmi'
@@ -48,15 +49,15 @@ function App() {
               <Router>
               <div className="App">
                 <Routes>
-                {/* Public Routes */}
                 <Route 
                   path="/" 
                   element={<PublicLayout />}
                 >
                   <Route index element={<Home />} />
+                  <Route path="about" element={<About />} />
+                  <Route path="demo" element={<Demo />} />
                 </Route>
 
-                {/* Protected Private Routes */}
                 <Route 
                   path="/app" 
                   element={
@@ -70,20 +71,25 @@ function App() {
                   <Route path="chats" element={<Chat />} />
                   <Route path="chat" element={<Chat />} />
                   <Route path="private" element={<ComingSoonPage title="Private Sessions" />} />
-                  <Route path="ai-chat" element={<AIChat />} />
                   
-                  {/* Default redirect to dashboard when accessing /app */}
                   <Route index element={<Navigate to="dashboard" replace />} />
                 </Route>
 
-              {/* Redirect legacy routes */}
+                <Route 
+                  path="/app/ai-chat" 
+                  element={
+                    <ProtectedRoute>
+                      <AIChat />
+                    </ProtectedRoute>
+                  } 
+                />
+
               <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
               <Route path="/chats" element={<Navigate to="/app/chats" replace />} />
               <Route path="/chat" element={<Navigate to="/app/chat" replace />} />
               <Route path="/private" element={<Navigate to="/app/private" replace />} />
               <Route path="/ai-chat" element={<Navigate to="/app/ai-chat" replace />} />
 
-              {/* Catch all - redirect to home */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>

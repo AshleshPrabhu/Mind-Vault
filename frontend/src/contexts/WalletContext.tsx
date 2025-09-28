@@ -47,9 +47,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   const [isInitializing, setIsInitializing] = useState(true);
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
-  // Function to create or login user
   const createOrLoginUser = async (walletAddress: string) => {
-    // Prevent multiple simultaneous calls for the same address
     if (isLoading || user?.walletAddress === walletAddress) {
       return user;
     }
@@ -65,7 +63,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         },
         body: JSON.stringify({
           address: walletAddress,
-          type: 'USER' // Default user type
+          type: 'USER'
         }),
       });
 
@@ -79,11 +77,9 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       const data = await response.json();
 
       if (data.success && data.user) {
-        // Store user data in localStorage
         localStorage.setItem('mindvault_user', JSON.stringify(data.user));
         setUser(data.user);
         
-        // Close wallet modal - navigation will be handled by the calling component
         setIsWalletModalOpen(false);
         console.log('User created/logged in successfully:', data.user);
         return data.user;
@@ -94,7 +90,6 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error creating/logging in user:', error);
       
-      // In development mode, create a mock user if backend is not available
       if (IS_DEV_MODE && error instanceof Error && error.message.includes('Network error')) {
         console.warn('Backend not available, creating mock user for development');
         const mockUser = {
@@ -120,7 +115,6 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     }
   };
 
-  // Load user from localStorage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem('mindvault_user');
     if (storedUser) {
@@ -136,19 +130,14 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     setIsInitializing(false);
   }, []);
 
-  // Handle explicit wallet disconnection
-  // Note: We don't automatically clear user on !isConnected because 
-  // the wallet might just be reconnecting on page reload
   useEffect(() => {
-    // Only clear user if we have a user but no address (meaning explicit disconnect)
     if (user && !address && isConnected === false) {
-      // Add a small delay to avoid clearing during initial load
       const timer = setTimeout(() => {
         if (!address && isConnected === false) {
           setUser(null);
           localStorage.removeItem('mindvault_user');
         }
-      }, 2000); // 2 second delay to allow wallet to reconnect
+      }, 2000); 
       
       return () => clearTimeout(timer);
     }
@@ -166,7 +155,6 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     disconnect();
     setUser(null);
     localStorage.removeItem('mindvault_user');
-    // Navigation will be handled by the component that calls this
   };
 
   const value: WalletContextType = {

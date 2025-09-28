@@ -4,13 +4,11 @@ import { ArrowLeft, MessageCircle } from 'lucide-react';
 import logo from '../assets/logo_only.png';
 import logoText from '../assets/logo_text.png';
 
-// Types
 interface Message {
   sender: 'user' | 'bot';
   text: string;
 }
 
-// Extend Window interface for Speech Recognition
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -18,7 +16,6 @@ declare global {
   }
 }
 
-// Markdown Renderer Component
 const MarkdownRenderer: React.FC<{ text: string }> = ({ text }) => {
   const lines = text.split('\n').filter((line: string) => line.trim() !== '');
 
@@ -26,20 +23,16 @@ const MarkdownRenderer: React.FC<{ text: string }> = ({ text }) => {
     <div className="space-y-2">
       {lines.map((line: string, index: number) => {
         let content = line.trim();
-        
-        // Process for bold text (*text*). Use a non-greedy match.
         const renderBold = (text: string) => {
           const parts = text.split(/(\*.*?\*)/g);
           return parts.map((part: string, partIndex: number) => {
             if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
               return <strong key={partIndex} className="text-gray-900 font-semibold">{part.slice(1, -1)}</strong>;
             }
-            // For all other parts, remove any remaining single asterisks
             return part.replace(/\*/g, '');
           });
         };
 
-        // Check for headings first (e.g., ### Heading)
         if (content.startsWith('### ')) {
           const headingText = content.substring(4);
           return (
@@ -49,7 +42,6 @@ const MarkdownRenderer: React.FC<{ text: string }> = ({ text }) => {
           );
         }
 
-        // Check for list items
         const listMarkerRegex = /^\s*(\*|-)\s+/;
         const isListItem = listMarkerRegex.test(content);
 
@@ -63,7 +55,6 @@ const MarkdownRenderer: React.FC<{ text: string }> = ({ text }) => {
           );
         }
 
-        // Render as a simple line/paragraph otherwise
         return (
           <div key={index} className="text-gray-700 leading-relaxed">
             {renderBold(content)}
@@ -77,7 +68,6 @@ const MarkdownRenderer: React.FC<{ text: string }> = ({ text }) => {
 const AIChat: React.FC = () => {
   const navigate = useNavigate();
   
-  // State Management
   const [messages, setMessages] = useState<Message[]>([
     { sender: 'bot', text: "Hi 👋 I am your MindVault companion. How are you feeling today?" }
   ]);
@@ -88,19 +78,16 @@ const AIChat: React.FC = () => {
   const [isListening, setIsListening] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
 
-  // Mock user data - in real app this would come from props or context
   const walletAddress = "0x1234567890abcdef";
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
-  // Refs
   const chatEndRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const recognitionRef = useRef<any>(null);
 
-  // Keywords and Messages
   const suicideKeywords = [
     "suicide", "kill myself", "want to die", "end my life", 
     "self-harm", "harm myself", "ending it all", "no reason to live"
@@ -135,7 +122,6 @@ You can connect with people who can support you by calling or texting these serv
 Please reach out to one of these numbers. They are there to help.
 `;
 
-  // Effects
   useEffect(() => {
     if (!loading) {
       chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -174,7 +160,6 @@ Please reach out to one of these numbers. They are there to help.
     };
   }, []);
 
-  // Handlers
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
     if (isListening) recognitionRef.current?.stop();
@@ -186,7 +171,6 @@ Please reach out to one of these numbers. They are there to help.
     setLoading(true);
 
     try {
-      // Check for suicide keywords first
       const lowerCaseMessage = userMessageText.toLowerCase();
       if (suicideKeywords.some(keyword => lowerCaseMessage.includes(keyword))) {
         setMessages((prev) => [...prev, { sender: 'bot', text: helplineMessage }]);
@@ -194,7 +178,6 @@ Please reach out to one of these numbers. They are there to help.
         return;
       }
 
-      // Call Gemini API directly
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       
       if (!apiKey) {
@@ -231,14 +214,14 @@ Please reach out to one of these numbers. They are there to help.
 
     } catch (err: any) {
       console.error("Error fetching bot response:", err);
-      let errorMessage = "⚠️ Sorry, I had trouble responding.";
+      let errorMessage = " Sorry, I had trouble responding.";
       
       if (err.message.includes("API key not found")) {
-        errorMessage = "⚠️ API key missing. Please add VITE_GEMINI_API_KEY to your .env file.";
+        errorMessage = " API key missing. Please add VITE_GEMINI_API_KEY to your .env file.";
       } else if (err instanceof TypeError && err.message === 'Failed to fetch') {
-        errorMessage = "⚠️ Connection failed. Please check your internet connection.";
+        errorMessage = " Connection failed. Please check your internet connection.";
       } else if (err.message.includes("API call failed")) {
-        errorMessage = "⚠️ AI service temporarily unavailable. Please try again.";
+        errorMessage = "AI service temporarily unavailable. Please try again.";
       }
       
       setMessages((prev) => [...prev, { sender: 'bot', text: errorMessage }]);
@@ -276,7 +259,6 @@ Please reach out to one of these numbers. They are there to help.
 
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Chat History Sidebar */}
       <div className={`
         ${showHistory ? 'w-80' : 'w-0'} 
         flex-shrink-0 bg-white border-r border-gray-200 transition-all duration-300 overflow-hidden
@@ -303,9 +285,7 @@ Please reach out to one of these numbers. They are there to help.
         </div>
       </div>
 
-      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-        {/* Header */}
         <div className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -344,7 +324,6 @@ Please reach out to one of these numbers. They are there to help.
               AI Companion
             </div>
             
-            {/* Account Menu - Same as PrivateHeader */}
             <div className="relative">
               <button 
                 onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
@@ -366,19 +345,15 @@ Please reach out to one of these numbers. They are there to help.
                 </svg>
               </button>
 
-              {/* Dropdown Menu */}
               {isAccountMenuOpen && (
                 <>
-                  {/* Backdrop */}
                   <div 
                     className="fixed inset-0 z-40" 
                     onClick={() => setIsAccountMenuOpen(false)}
                   />
                   
-                  {/* Menu Content */}
                   <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
                     <div className="p-2">
-                      {/* Profile Header */}
                       <div className="p-3 border-b border-gray-100">
                         <div className="flex items-center space-x-3">
                           <div className="w-12 h-12 bg-primary-600 rounded-full flex items-center justify-center">
@@ -396,7 +371,6 @@ Please reach out to one of these numbers. They are there to help.
                         </div>
                       </div>
                       
-                      {/* Menu Items */}
                       <div className="py-2">
                         <button 
                           className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-gray-700 hover:text-primary-600 hover:bg-gray-50 rounded-lg transition-colors text-left"
@@ -432,7 +406,6 @@ Please reach out to one of these numbers. They are there to help.
           </div>
         </div>
 
-        {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
           <div className="max-w-6xl mx-auto space-y-4">
             {messages.map((msg, i) => (
@@ -483,11 +456,9 @@ Please reach out to one of these numbers. They are there to help.
           </div>
         </div>
 
-        {/* Input Area */}
         <div className="bg-white border-t border-gray-200 p-6">
           <div className="max-w-6xl mx-auto">
             <div className="flex items-end space-x-4 bg-gray-50 rounded-2xl p-3 border border-gray-200 focus-within:border-primary-300 focus-within:ring-4 focus-within:ring-primary-100 transition-all duration-200">
-              {/* Voice Input Button */}
               <button
                 onClick={handleVoiceListen}
                 className={`
@@ -504,7 +475,6 @@ Please reach out to one of these numbers. They are there to help.
                 </svg>
               </button>
 
-              {/* Text Input */}
               <input
                 type="text"
                 value={input}
@@ -519,7 +489,6 @@ Please reach out to one of these numbers. They are there to help.
                 "
               />
 
-              {/* Send Button */}
               <button
                 onClick={sendMessage}
                 disabled={loading || !input.trim()}

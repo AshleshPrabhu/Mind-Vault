@@ -1,21 +1,25 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useWallet } from '../contexts/WalletContext';
 import { ContainerTextFlip } from '../components/ui/container-text-flip';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const { isConnected, openWalletModal } = useWallet();
 
-  const handleConnectWallet = async () => {
-    navigate('/app/dashboard');
+  const handleGetStarted = () => {
+    if (isConnected) {
+      navigate('/app/chats');
+    } else {
+      openWalletModal();
+    }
   };
 
   return (
     <div className="min-h-screen bg-white scrollbar-thin -mt-8">
-      {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           
-          {/* Left Column - Content */}
           <div className="text-left space-y-6">
             <h1 className="text-4xl sm:text-3xl lg:text-6xl font-bold text-gray-900 leading-tight tracking-tight">
               Get mental health support
@@ -30,14 +34,13 @@ const Home: React.FC = () => {
             </p>
 
             <button 
-              onClick={handleConnectWallet}
+              onClick={handleGetStarted}
               className="btn btn-primary text-lg px-8 py-4 text-white font-medium"
             >
               Get started →
             </button>
           </div>
 
-          {/* Right Column - Mental Health Collaboration Visual */}
           <div className="relative">
             <div className="max-w-lg mx-auto lg:mx-0">
               <img 
@@ -50,7 +53,6 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Features Overview Section */}
       <section id='features' className="py-8 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -102,7 +104,6 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Community Section */}
       <section id='community' className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
@@ -116,7 +117,6 @@ const Home: React.FC = () => {
 
           <div className="flex flex-wrap justify-center gap-8">
             
-            {/* Discussion Spaces */}
             <div className="card-lg group transition-all duration-300">
               <div className="text-center">
                 <div className="w-20 h-20 bg-gradient-to-r from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 transition-transform duration-300">
@@ -129,7 +129,6 @@ const Home: React.FC = () => {
                   Join public chatrooms based on topics that matter to you
                 </p>
                 
-                {/* Topic Tags */}
                 <div className="flex flex-wrap justify-center gap-2 mb-6">
                   <span className="px-3 py-2 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
                     Stress & Anxiety
@@ -155,7 +154,6 @@ const Home: React.FC = () => {
               </div>
             </div>
 
-            {/* Peer-to-Peer Support */}
             <div className="card-lg group transition-all duration-300">
               <div className="text-center">
                 <div className="w-20 h-20 bg-gradient-to-r from-primary-600 to-primary-500 rounded-2xl flex items-center justify-center mx-auto mb-6 transition-transform duration-300">
@@ -168,7 +166,6 @@ const Home: React.FC = () => {
                   Connect with peers and build meaningful support networks
                 </p>
                 
-                {/* Support Features */}
                 <div className="bg-primary-50 px-3 py-2 rounded-xl mb-6">
                   <div className="text-primary-600 font-semibold text-sm">Anonymous Peer Matching</div>
                 </div>

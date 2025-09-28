@@ -60,12 +60,51 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on("join_private", ({ userId, peerId, type }) => {
-        const room = `private:${[userId, peerId].sort().join(":")}`;
-        createChatRoom({ roomName: room, type: type as 'PRIVATE'|'AI', participantIds: [userId, peerId] });
-        socket.join(room);
-
-        io.to(room).emit("private_room_created", { userId, peerId, room });
+    socket.on("join_private", async ({ userId, peerId, type }) => {
+        console.log(` join_private event received:`, { userId, peerId, type });
+        
+        try {
+            const [user, peer] = await Promise.all([
+                prisma.user.findUnique({ where: { id: parseInt(userId) } }),
+                prisma.user.findUnique({ where: { id: parseInt(peerId) } })
+            ]);
+            
+            if (!user || !peer) {
+                socket.emit("error", { message: "User not found" });
+                return;
+            }
+            
+            const roomName = [user.username, peer.username].sort().join(" & ");
+            console.log(` Creating chat room with name:`, roomName);
+            
+            const result = await createChatRoom({ 
+                roomName, 
+                type: type as 'PRIVATE'|'AI', 
+                participantIds: [userId, peerId] 
+            });
+            
+            console.log(` Chat room creation result:`, result);
+            
+            if (result.success) {
+                const socketRoom = `private:${[userId, peerId].sort().join(":")}`;
+                socket.join(socketRoom);
+                console.log(`Socket ${socket.id} joined room ${socketRoom}`);
+                
+                io.to(socketRoom).emit("private_room_created", { 
+                    userId, 
+                    peerId, 
+                    room: socketRoom,
+                    chatRoom: result.data 
+                });
+                console.log(`Emitted private_room_created event to room ${socketRoom}`);
+            } else {
+                console.error(`Failed to create chat room:`, result.message);
+                socket.emit("error", { message: result.message });
+            }
+        } catch (error) {
+            console.error(` Error in join_private handler:`, error);
+            socket.emit("error", { message: "Failed to create private chat" });
+        }
     });
 
     socket.on("typing_start", ({ roomId, userId }) => {
@@ -75,11 +114,9 @@ io.on('connection', (socket) => {
     socket.on("typing_stop", ({ roomId, userId }) => {
         socket.to(roomId).emit("user_stopped_typing", { userId, roomId });
     });
-
-    // Message validation handlers
     socket.on("validate_message", async({ messageId, validatedBy }) => {
         try {
-            // Check if user is a validator
+            //
             const validator = await prisma.user.findUnique({
                 where: { id: validatedBy }
             });
@@ -89,7 +126,6 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            // Update message validation status
             const updatedMessage = await prisma.messages.update({
                 where: { messageId },
                 data: { isValidated: true },
@@ -111,8 +147,6 @@ io.on('connection', (socket) => {
                     }
                 }
             });
-
-            // Emit validation event to all users in the room
             io.to(updatedMessage.roomId.toString()).emit("message_validated", {
                 messageId,
                 validatedBy,
@@ -127,7 +161,6 @@ io.on('connection', (socket) => {
 
     socket.on("unvalidate_message", async({ messageId, unvalidatedBy }) => {
         try {
-            // Check if user is a validator
             const validator = await prisma.user.findUnique({
                 where: { id: unvalidatedBy }
             });
@@ -137,7 +170,6 @@ io.on('connection', (socket) => {
                 return;
             }
 
-            // Update message validation status
             const updatedMessage = await prisma.messages.update({
                 where: { messageId },
                 data: { isValidated: false },
@@ -160,7 +192,6 @@ io.on('connection', (socket) => {
                 }
             });
 
-            // Emit unvalidation event to all users in the room
             io.to(updatedMessage.roomId.toString()).emit("message_unvalidated", {
                 messageId,
                 unvalidatedBy,
@@ -173,7 +204,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // User presence handlers
     socket.on("user_online", ({ userId }) => {
         socket.broadcast.emit("user_online", { userId });
     });

@@ -20,23 +20,19 @@ const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
   React.useEffect(() => {
     if (isConnected && address && isOpen && !isLoading && !user && !hasProcessedConnection) {
       setHasProcessedConnection(true);
-      setError(null); // Clear any previous errors
-      
-      // Handle user creation and navigation
+      setError(null);
       createOrLoginUser(address)
         .then(() => {
-          // Navigate to chats after successful user creation
           navigate('/app/chats');
         })
         .catch((err) => {
           console.error('Failed to create/login user:', err);
-          setHasProcessedConnection(false); // Reset to allow retry
+          setHasProcessedConnection(false); 
           setError(err instanceof Error ? err.message : 'Failed to create account');
         });
     }
   }, [isConnected, address, isOpen, isLoading, user, hasProcessedConnection, createOrLoginUser, navigate]);
 
-  // Reset processing flag when modal closes or wallet disconnects
   React.useEffect(() => {
     if (!isOpen || !isConnected) {
       setHasProcessedConnection(false);

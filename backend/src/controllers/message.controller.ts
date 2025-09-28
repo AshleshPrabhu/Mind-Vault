@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import prisma from "../utils/prisma.js";
+import tokenMintingService from "../services/tokenMinting.service.js";
 
 interface EncryptedData {
     ciphertext: string;
@@ -318,17 +319,63 @@ const validateMessage = async (req: Request, res: Response) => {
 
         const updatedMessage = await prisma.messages.update({
             where: { messageId: parseInt(messageId) },
-            data: { isValidated: true,rewarded:true },
+            data: { isValidated: true, rewarded: true },
             include: {
                 sender: {
                     select: {
                         id: true,
                         username: true,
-                        profilePicture: true
+                        profilePicture: true,
+                        walletAddress: true
                     }
                 }
             }
         });
+
+        console.log('🔍 Checking token minting conditions...');
+        console.log('   - User wallet address:', updatedMessage.sender.walletAddress);
+        console.log('   - Token service configured:', tokenMintingService.isConfigured());
+        console.log('   - Token service wallet:', tokenMintingService.getMintingWalletAddress());
+        
+        if (updatedMessage.sender.walletAddress && tokenMintingService.isConfigured()) {
+            console.log(`Attempting to reward user ${updatedMessage.sender.username} (ID: ${updatedMessage.sender.id})`);
+            
+            const rewardAmount = 10; 
+            const mintResult = await tokenMintingService.mintTokens(
+                updatedMessage.sender.walletAddress,
+                rewardAmount
+            );
+
+            if (mintResult.success) {
+                console.log(`✅ Successfully rewarded ${rewardAmount} ASH tokens!`);
+                console.log(`   TX: ${mintResult.txHash}`);
+                
+                try {
+                    await prisma.user.update({
+                        where: { id: updatedMessage.sender.id },
+                        data: {
+                            tokenBalance: {
+                                increment: rewardAmount
+                            }
+                        }
+                    });
+                    console.log(`Updated database balance for user ${updatedMessage.sender.id}`);
+                } catch (dbError) {
+                    console.error('Failed to update database balance:', dbError);
+                }
+            } else {
+                console.error(` Token minting failed: ${mintResult.error}`);
+                // Note: We don't fail the validation if minting fails
+            }
+        } else {
+            if (!updatedMessage.sender.walletAddress) {
+                console.log(' No wallet address found for user, skipping token reward');
+            }
+            if (!tokenMintingService.isConfigured()) {
+                console.log(' Token minting service not configured, skipping token reward');
+                console.log('   Check MINTING_PRIVATE_KEY, ASH_TOKEN_CONTRACT, and SEPOLIA_RPC_URL in .env file');
+            }
+        }
 
         return res.status(200).json({
             message: "Message validated successfully",
