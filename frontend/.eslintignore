@@ -1,0 +1,17 @@
+# Ignore build output
+dist/
+build/
+
+# Ignore dependencies
+node_modules/
+
+# Ignore generated files
+*.tsbuildinfo
+
+# Ignore config files that might have linting issues
+vite.config.ts
+tailwind.config.js
+
+# Ignore specific files if needed
+src/lib/litProtocol.ts
+src/components/chat/ChatMain.tsx
