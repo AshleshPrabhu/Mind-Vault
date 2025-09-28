@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageCircle, Bot, User, ArrowRight, Star } from 'lucide-react';
-import chatRoomSS from "../assets/screenshot001.png"
+import chatRoomSS from "../assets/Screenshot001.png"
 import aiChatSS from "../assets/Screenshot002.png"
 import profileSS from "../assets/Screenshot003.png"
 
