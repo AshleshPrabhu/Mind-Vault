@@ -9,7 +9,7 @@ import donationRoutes from './routes/donation.routes.js';
 
 const app = express();
 
-const allowedOrigins = ['http://localhost:5173'];
+const allowedOrigins = ['https://mindvault-engi.vercel.app','http://localhost:5173'];
 app.use(
     cors({
         origin: (origin, callback) => {

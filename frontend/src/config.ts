@@ -14,7 +14,7 @@ export const config = createConfig({
 })
 
 // API Configuration
-export const API_BASE_URL = 'http://localhost:3000/api'
+export const API_BASE_URL = 'https://mind-vault-2lwh.onrender.com/api'
 
 // Development mode flag
 export const IS_DEV_MODE = import.meta.env.DEV
