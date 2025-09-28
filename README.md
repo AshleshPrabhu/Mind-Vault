@@ -11,7 +11,8 @@
 
 **A revolutionary decentralized platform combining Web3 technology with AI-powered mental health support**
 
-<!-- [📸 Live Demo](#platform-screenshots) | [🏗️ Architecture](#architecture) | [�️ How It Works](#how-it-works) | [� Meet the Team](#team) -->
+
+[ **Live Demo**](https://mindvault-engi.vercel.app/) 
 
 </div>
 
